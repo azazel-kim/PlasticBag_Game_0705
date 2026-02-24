@@ -1,0 +1,10 @@
+{
+  "name": "com.avaturn.installer",
+  "displayName": "AvaturnInstaller",
+  "version": "0.3.0",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "author": "Avaturn",
+  "description": "Avaturn Installer package. Install all needed packages."
+}
