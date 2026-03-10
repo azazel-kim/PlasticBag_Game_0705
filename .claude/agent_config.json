@@ -1,0 +1,190 @@
+{
+  "project": "PlasticBag VR Exergame - Multi-Platform XR + Multi-Sensor Integration",
+  "current_platform": "Meta Quest Pro (Meta XR SDK v77)",
+  "target_platforms": ["Meta Quest Pro", "Samsung XR (Project Moohan)", "Xreal Glass"],
+  "unity_version": "2022.3.x (→ 6000.1 마이그레이션 계획)",
+  "dev_environment": "MacBook Pro M1 32GB",
+
+  "agents": {
+    "existing": [
+      {
+        "id": "xr-exergame-director",
+        "model": "opus",
+        "role": "프로젝트 총괄 디렉터",
+        "command": "/director"
+      },
+      {
+        "id": "xr-platform-integrator",
+        "model": "sonnet",
+        "role": "XR 멀티플랫폼 통합",
+        "command": "/platform"
+      },
+      {
+        "id": "eye-tracking-specialist",
+        "model": "sonnet",
+        "role": "시선 추적 전문가",
+        "command": "/eye"
+      },
+      {
+        "id": "body-tracking-exercise",
+        "model": "sonnet",
+        "role": "바디/핸드/페이스 트래킹",
+        "command": "/body"
+      },
+      {
+        "id": "gameplay-physics-engineer",
+        "model": "sonnet",
+        "role": "물리/게임플레이 엔진",
+        "command": "/physics"
+      },
+      {
+        "id": "xr-ux-engineer",
+        "model": "sonnet",
+        "role": "공간 UI/UX 설계",
+        "command": "/ux"
+      },
+      {
+        "id": "xr-performance-optimizer",
+        "model": "sonnet",
+        "role": "성능 최적화",
+        "command": "/optimizer"
+      },
+      {
+        "id": "audio-haptics-engineer",
+        "model": "haiku",
+        "role": "오디오/햅틱",
+        "command": "/audio"
+      },
+      {
+        "id": "build-deploy-engineer",
+        "model": "haiku",
+        "role": "빌드/배포",
+        "command": "/build"
+      }
+    ],
+    "new": [
+      {
+        "id": "linkband2-sensor-specialist",
+        "model": "sonnet",
+        "role": "LinkBand2 뇌파밴드 BLE 통합",
+        "command": "/linkband",
+        "priority": "CRITICAL",
+        "dependencies": ["LooxidLabs SDK-Android 1.0.1"]
+      },
+      {
+        "id": "multi-sensor-fusion-engineer",
+        "model": "opus",
+        "role": "멀티센서 데이터 융합 아키텍처",
+        "command": "/fusion",
+        "priority": "CRITICAL",
+        "dependencies": ["linkband2-sensor-specialist", "camera-motion-analyst", "eye-tracking-specialist"]
+      },
+      {
+        "id": "exergame-fitness-system",
+        "model": "sonnet",
+        "role": "운동 분석/적응형 난이도/바이오피드백",
+        "command": "/exergame",
+        "priority": "HIGH",
+        "dependencies": ["multi-sensor-fusion-engineer"]
+      },
+      {
+        "id": "samsung-xr-device-specialist",
+        "model": "sonnet",
+        "role": "Samsung XR 디바이스/마이그레이션",
+        "command": "/samsung",
+        "priority": "HIGH",
+        "dependencies": []
+      },
+      {
+        "id": "camera-motion-analyst",
+        "model": "haiku",
+        "role": "카메라 동작분석 + X-Sens IMU",
+        "command": "/camera",
+        "priority": "HIGH",
+        "dependencies": ["Gemini CameraCapturePlugin"]
+      }
+    ]
+  },
+
+  "sensor_pipeline": {
+    "sources": [
+      {
+        "name": "LinkBand2 EEG",
+        "type": "BLE",
+        "rate_hz": 500,
+        "latency_ms": "20-50",
+        "data": ["Ch1_uV", "Ch2_uV", "Contact1", "Contact2"]
+      },
+      {
+        "name": "LinkBand2 PPG",
+        "type": "BLE",
+        "rate_hz": 25,
+        "latency_ms": "20-50",
+        "data": ["Infrared", "Red"]
+      },
+      {
+        "name": "LinkBand2 ACC",
+        "type": "BLE",
+        "rate_hz": 60,
+        "latency_ms": "20-50",
+        "data": ["X", "Y", "Z"]
+      },
+      {
+        "name": "External Camera",
+        "type": "Camera2 API",
+        "rate_hz": 30,
+        "latency_ms": "50-100",
+        "data": ["JPEG frame", "MotionData"]
+      },
+      {
+        "name": "X-Sens IMU",
+        "type": "BLE/UDP",
+        "rate_hz": "60-120",
+        "latency_ms": "5-20",
+        "data": ["Acceleration", "AngularVelocity", "Orientation"]
+      },
+      {
+        "name": "Eye Tracking",
+        "type": "OpenXR (내장)",
+        "rate_hz": 90,
+        "latency_ms": "<10",
+        "data": ["LeftEyeRotation", "RightEyeRotation", "GazeDirection"]
+      }
+    ],
+    "fusion": {
+      "output_rate_hz": 30,
+      "max_time_drift_ms": 100,
+      "ring_buffer_size": 512,
+      "analysis_window_sec": 30,
+      "analysis_interval_sec": 5
+    }
+  },
+
+  "ble_stability": {
+    "max_reconnect_attempts": 10,
+    "reconnect_base_delay_ms": 1000,
+    "reconnect_max_delay_ms": 30000,
+    "cache_clear_after_failures": 3,
+    "connection_monitor_interval_ms": 500,
+    "gatt_refresh_method": "reflection (BluetoothGatt.refresh())"
+  },
+
+  "file_structure": {
+    "scripts": "Assets/Scripts/",
+    "plugins": "Assets/Exergame/Plugins/",
+    "managers": "Assets/Exergame/Managers/",
+    "agents": "Assets/Exergame/Agents/",
+    "data_models": "Assets/Exergame/Data/Models/",
+    "config": "Assets/Exergame/Config/"
+  },
+
+  "plasticbag_core_files": {
+    "spawner": "Assets/Scripts/PlasticbagSpawner.cs",
+    "plasticbag": "Assets/Scripts/PlasticBag.cs",
+    "gaze_controller": "Assets/Scripts/GazeInteractionController.cs",
+    "bold_gaze": "Assets/Scripts/BoldGazeInteractionController.cs",
+    "eye_raycaster": "Assets/Scripts/EyeTrackingRaycaster.cs",
+    "gaze_frequency": "Assets/Scripts/GazeFrequencyController.cs",
+    "collision_sound": "Assets/Scripts/Plasticbagsound.cs"
+  }
+}
