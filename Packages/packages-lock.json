@@ -8,7 +8,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
       },
-      "hash": "d76a8df311c48263872be0cd3e6a8ef1a0fa8e59"
+      "hash": "a7c715fb1f2b7741b46f5ee48c70aa3bb1189bd2"
     },
     "com.google.xr.extensions": {
       "version": "https://github.com/android/android-xr-unity-package.git#v1.2.0",
@@ -351,7 +351,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.hands": {
-      "version": "1.7.0",
+      "version": "1.7.3",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -364,7 +364,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.interaction.toolkit": {
-      "version": "3.3.0",
+      "version": "3.3.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {

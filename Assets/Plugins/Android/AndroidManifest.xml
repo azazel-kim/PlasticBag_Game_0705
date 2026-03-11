@@ -20,6 +20,10 @@
   <!-- Eye Tracking 퍼미션 (Android XR에서 시선 추적에 필요) -->
   <uses-permission android:name="android.permission.EYE_TRACKING" />
 
+  <!-- Hand Tracking 퍼미션 (Android XR에서 손 추적에 필요) -->
+  <uses-permission android:name="android.permission.HAND_TRACKING" />
+  <uses-feature android:name="android.hardware.xr.input.hand_tracking" android:required="false" />
+
   <!-- VR 헤드 트래킹 하드웨어 요구사항 (Android XR 표준) -->
   <uses-feature android:name="android.hardware.vr.headtracking" android:version="1" android:required="true" />
 
