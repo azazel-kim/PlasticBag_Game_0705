@@ -1,28 +1,26 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" android:installLocation="auto">
-  <application android:label="@string/app_name" android:icon="@mipmap/app_icon" android:allowBackup="false">
-    <activity android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" android:configChanges="locale|fontScale|keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode" android:launchMode="singleTask" android:name="com.unity3d.player.UnityPlayerActivity" android:excludeFromRecents="true" android:exported="true">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-        <category android:name="com.oculus.intent.category.VR" />
-      </intent-filter>
-      <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
-    </activity>
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!-- AndroidManifest.xml - Samsung Galaxy XR (Android XR) 호환 매니페스트 -->
+<!-- UnityPlayerActivity는 선언하지 않음 - Android XR에서는 UnityPlayerGameActivity만 사용 -->
+<!-- FixAndroidManifest.cs가 빌드 시 UnityPlayerGameActivity에 LAUNCHER를 자동 추가 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
+
+  <application
+      android:label="@string/app_name"
+      android:icon="@mipmap/app_icon"
+      android:allowBackup="false">
+
+    <!-- 퍼미션 다이얼로그 스킵 여부 -->
     <meta-data android:name="unityplayer.SkipPermissionsDialog" android:value="false" />
+    <!-- Samsung XR VR 전용 모드 설정 -->
     <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only" />
-    <meta-data android:name="com.oculus.handtracking.frequency" android:value="LOW" />
-    <meta-data android:name="com.oculus.handtracking.version" android:value="V2.0" />
-    <meta-data android:name="com.oculus.ossplash.background" android:value="passthrough-contextual" />
-    <meta-data android:name="com.oculus.telemetry.project_guid" android:value="ea6384f9-a08d-4aff-82eb-7dbbe61eb952" />
-    <meta-data android:name="com.oculus.supportedDevices" android:value="quest3" />
   </application>
+
+  <!-- Eye Tracking 퍼미션 (Android XR에서 시선 추적에 필요) -->
+  <uses-permission android:name="android.permission.EYE_TRACKING" />
+
+  <!-- VR 헤드 트래킹 하드웨어 요구사항 (Android XR 표준) -->
   <uses-feature android:name="android.hardware.vr.headtracking" android:version="1" android:required="true" />
-  <uses-feature android:name="oculus.software.handtracking" android:required="false" />
-  <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
-  <uses-permission android:name="com.oculus.permission.USE_ANCHOR_API" />
-  <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="false" />
-  <uses-feature android:name="com.oculus.software.body_tracking" android:required="true" />
-  <uses-permission android:name="com.oculus.permission.BODY_TRACKING" />
-  <uses-permission android:name="com.oculus.permission.USE_SCENE" />
+
 </manifest>

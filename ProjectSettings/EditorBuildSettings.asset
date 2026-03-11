@@ -8,7 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/1_Start_Scene_with_Analyze.unity
     guid: 9702004b4606a124e80b1c16fb1c9f3a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/3-1_PlasticBagPlay_with_Analyze.unity
     guid: 81991746f07480c49ac27a7960df9be5
   m_configObjects:

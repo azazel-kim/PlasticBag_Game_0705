@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__coplay-mcp__execute_script",
+      "mcp__coplay-mcp__check_compile_errors",
+      "mcp__coplay-mcp__list_unity_project_roots",
+      "mcp__coplay-mcp__set_unity_project_root"
+    ]
+  }
+}

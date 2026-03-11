@@ -2,8 +2,6 @@
   "dependencies": {
     "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
     "com.google.xr.extensions": "https://github.com/android/android-xr-unity-package.git#v1.2.0",
-    "com.meta.movement": "https://github.com/oculus-samples/Unity-Movement.git#v71.0.1",
-    "com.meta.xr.sdk.all": "77.0.0",
     "com.unity.adaptiveperformance": "5.1.6",
     "com.unity.adaptiveperformance.samsung.android": "5.1.0",
     "com.unity.collab-proxy": "2.8.2",

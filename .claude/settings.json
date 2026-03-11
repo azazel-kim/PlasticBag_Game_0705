@@ -1,11 +1,14 @@
 {
   "permissions": {
+    "allow": [
+      "Read(//Users/user/Projects/Unity/PlasticBag_Game_0705/**)",
+      "Bash($ADB uninstall:*)",
+      "Bash($ADB shell:*)",
+      "Bash($ADB install:*)"
+    ],
     "additionalDirectories": [
       "/Users/user/Projects/Unity/xr-unity-samples/AndroidXRUnitySamples/.claude",
       "/Users/user/Projects/Unity/PlasticBag_Game_0705/.claude/commands"
-    ],
-    "allow": [
-      "Read(//Users/user/Projects/Unity/PlasticBag_Game_0705/**)"
     ]
   }
 }
