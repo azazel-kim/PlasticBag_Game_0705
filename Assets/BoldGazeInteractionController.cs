@@ -12,35 +12,43 @@ public class BoldGazeInteractionController : MonoBehaviour
     public TextMeshProUGUI percentageText;
 
     [Header("시선 측정 설정")]
-    public float calculationInterval = 10f;
+    [Tooltip("이 시간(초) 동안의 평균을 계산합니다")]
+    public float calculationInterval = 3f;
     public LayerMask targetLayer;
 
-    // [수정 1] SphereCast의 반지름(두께)을 설정할 변수 추가
     [Header("시선 감지 정확도 설정")]
-    [Tooltip("시선 감지 영역의 반지름입니다. 움직이는 작은 타겟을 위해 0.1~0.2 정도로 설정하는 것을 추천합니다.")]
+    [Tooltip("시선 감지 영역의 반지름")]
     public float gazeRadius = 0.1f;
 
-    private float timer = 0f;
-    private float gazeDurationOnTarget = 0f;
+    // 슬라이딩 윈도우 방식: 매 프레임의 히트 여부를 기록
+    private float[] _frameSamples;   // 1=히트, 0=미스
+    private float[] _frameDeltas;    // 각 샘플의 deltaTime
+    private int _sampleIndex = 0;
+    private int _sampleCount = 0;
+    private int _maxSamples = 300;   // 최대 ~5초분 (60fps 기준)
+
+    private float _displayPercentage = 100f;
     private GameObject lastHitGazeTarget = null;
 
     void Start()
     {
         objectNameText.text = "";
-        percentageText.text = "0%";
-        progressBarFill.fillAmount = 0.1f;
+        percentageText.text = "100%";
+        progressBarFill.fillAmount = 1f;
+
+        _frameSamples = new float[_maxSamples];
+        _frameDeltas = new float[_maxSamples];
+        _displayPercentage = 100f;
     }
 
     void Update()
     {
-        timer += Time.deltaTime;
-
+        bool isHit = false;
         RaycastHit hit;
-        
-        // [수정 2] Physics.Raycast를 Physics.SphereCast로 교체
-        // gazeRadius의 두께를 가진 구를 쏘아 감지 정확도를 높입니다.
+
         if (Physics.SphereCast(transform.position, gazeRadius, transform.forward, out hit, float.MaxValue, targetLayer))
         {
+            isHit = true;
             GameObject currentHitObject = hit.collider.gameObject;
 
             if (currentHitObject != lastHitGazeTarget)
@@ -48,25 +56,51 @@ public class BoldGazeInteractionController : MonoBehaviour
                 objectNameText.text = currentHitObject.name;
                 lastHitGazeTarget = currentHitObject;
             }
-            
-            gazeDurationOnTarget += Time.deltaTime;
         }
-        
-        if (timer >= calculationInterval)
+
+        // 링 버퍼에 현재 프레임 기록
+        _frameSamples[_sampleIndex] = isHit ? 1f : 0f;
+        _frameDeltas[_sampleIndex] = Time.deltaTime;
+        _sampleIndex = (_sampleIndex + 1) % _maxSamples;
+        if (_sampleCount < _maxSamples) _sampleCount++;
+
+        // calculationInterval 이내의 샘플로 가중 평균 계산
+        float totalTime = 0f;
+        float hitTime = 0f;
+        int idx = _sampleIndex - 1;
+
+        for (int i = 0; i < _sampleCount; i++)
         {
-            float percentage = (gazeDurationOnTarget / calculationInterval) * 100f;
-            float fillValue = gazeDurationOnTarget / calculationInterval;
-            float mappedFillValue = 0.1f + fillValue * 0.9f;
+            if (idx < 0) idx += _maxSamples;
+            float dt = _frameDeltas[idx];
 
-            progressBarFill.fillAmount = mappedFillValue;
-            percentageText.text = $"{percentage:F0}%";
+            if (totalTime + dt > calculationInterval)
+            {
+                // 남은 시간만큼만 사용
+                float remaining = calculationInterval - totalTime;
+                hitTime += _frameSamples[idx] * remaining;
+                totalTime = calculationInterval;
+                break;
+            }
 
-            timer = 0f;
-            gazeDurationOnTarget = 0f;
+            hitTime += _frameSamples[idx] * dt;
+            totalTime += dt;
+            idx--;
         }
+
+        // % 계산
+        float targetPercentage = (totalTime > 0.01f) ? (hitTime / totalTime) * 100f : _displayPercentage;
+
+        // 부드러운 전환
+        _displayPercentage = Mathf.Lerp(_displayPercentage, targetPercentage, Time.deltaTime * 5f);
+
+        float fill = Mathf.Clamp01(_displayPercentage / 100f);
+        float mappedFill = 0.1f + fill * 0.9f;
+
+        progressBarFill.fillAmount = mappedFill;
+        percentageText.text = $"{Mathf.RoundToInt(_displayPercentage)}%";
     }
 
-    // (선택 사항) Scene 뷰에서 감지 영역을 시각적으로 확인하기 위한 Gizmo
     void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
