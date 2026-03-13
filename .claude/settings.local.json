@@ -4,7 +4,8 @@
       "mcp__coplay-mcp__execute_script",
       "mcp__coplay-mcp__check_compile_errors",
       "mcp__coplay-mcp__list_unity_project_roots",
-      "mcp__coplay-mcp__set_unity_project_root"
+      "mcp__coplay-mcp__set_unity_project_root",
+      "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/Unity.app/Contents/MacOS/Unity \\\\\n  -projectPath /Users/user/Projects/Unity/PlasticBag_Game_0705 \\\\\n  -buildTarget Android \\\\\n  -executeMethod BuildAndDeploy.BuildSamsungXRAPK \\\\\n  -logFile /tmp/unity_build.log \\\\\n  -quit \\\\\n  -nographics 2>&1 | tee /tmp/unity_build_console.log)"
     ]
   }
 }

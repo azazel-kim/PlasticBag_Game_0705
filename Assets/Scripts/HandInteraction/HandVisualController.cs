@@ -42,6 +42,7 @@ public class HandVisualController : MonoBehaviour
     private Material _autoOutlineMat;
     private Material _autoDarkMat;
     private Renderer[] _handRenderers;
+    private Renderer[] _handVisualizerRenderers; // Hand Visualizer 오브젝트의 렌더러
     private Material[] _originalMaterials;
     private HandVisualMode _currentMode;
 
@@ -59,13 +60,45 @@ public class HandVisualController : MonoBehaviour
         CreateMaterials();
         ApplyVisualMode(visualMode);
         _initialized = true;
+
+        // Hand Visualizer가 별도로 렌더링하는 기본 파란색 머티리얼도 수집
+        CollectHandVisualizerRenderers();
+    }
+
+    /// <summary>
+    /// Hand Visualizer 오브젝트 아래의 렌더러를 수집합니다.
+    /// XR Hands 샘플의 HandVisualizer가 별도로 파란색 손을 그리는 문제 방지.
+    /// </summary>
+    private void CollectHandVisualizerRenderers()
+    {
+        var cameraOffset = transform.parent;
+        if (cameraOffset == null) return;
+
+        var handVisualizer = cameraOffset.GetComponentInChildren<UnityEngine.XR.Hands.Samples.VisualizerSample.HandVisualizer>(true);
+        if (handVisualizer != null)
+        {
+            var renderers = handVisualizer.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length > 0)
+            {
+                _handVisualizerRenderers = renderers;
+                Debug.Log($"[HandVisual] Hand Visualizer에서 {renderers.Length}개 렌더러 발견, 머티리얼 덮어쓰기 시작");
+            }
+        }
     }
 
     // XRHandMeshController가 매 프레임 머티리얼을 덮어쓸 수 있으므로
     // LateUpdate에서 매 프레임 강제 적용
     void LateUpdate()
     {
-        if (!_initialized || _handRenderers == null) return;
+        if (!_initialized) return;
+
+        // 렌더러가 동적으로 생성되거나 파괴되었을 수 있으므로 체크 (XRHandMeshController 등 대응)
+        if (_handRenderers == null || _handRenderers.Length == 0 || (_handRenderers.Length > 0 && _handRenderers[0] == null))
+        {
+            CollectRenderers();
+        }
+
+        if (_handRenderers == null || _handRenderers.Length == 0) return;
 
         Material mat = null;
         switch (_currentMode)
@@ -88,6 +121,21 @@ public class HandVisualController : MonoBehaviour
                 if (r != null && r.sharedMaterial != mat)
                     r.material = mat;
             }
+
+            // Hand Visualizer의 렌더러도 매 프레임 회색으로 강제 적용
+            if (_handVisualizerRenderers == null || _handVisualizerRenderers.Length == 0 ||
+                (_handVisualizerRenderers.Length > 0 && _handVisualizerRenderers[0] == null))
+            {
+                CollectHandVisualizerRenderers();
+            }
+            if (_handVisualizerRenderers != null)
+            {
+                foreach (var r in _handVisualizerRenderers)
+                {
+                    if (r != null && r.sharedMaterial != mat)
+                        r.material = mat;
+                }
+            }
         }
     }
 
@@ -96,30 +144,54 @@ public class HandVisualController : MonoBehaviour
     /// </summary>
     private void CollectRenderers()
     {
-        _handRenderers = GetComponentsInChildren<Renderer>(true);
+        var currentRenderers = GetComponentsInChildren<Renderer>(true);
 
-        if (_handRenderers.Length > 0)
+        if (currentRenderers.Length > 0)
         {
-            // 원본 머티리얼 백업
-            _originalMaterials = new Material[_handRenderers.Length];
-            for (int i = 0; i < _handRenderers.Length; i++)
+            bool isNew = (_handRenderers == null || _handRenderers.Length != currentRenderers.Length);
+            if (!isNew && _handRenderers.Length > 0)
             {
-                if (_handRenderers[i].material != null)
-                    _originalMaterials[i] = new Material(_handRenderers[i].material);
+                isNew = _handRenderers[0] == null;
             }
-            Debug.Log($"[HandVisual] {_handRenderers.Length}개의 손 렌더러를 찾았습니다.");
+
+            if (isNew)
+            {
+                _handRenderers = currentRenderers;
+                // 원본 머티리얼 백업
+                _originalMaterials = new Material[_handRenderers.Length];
+                for (int i = 0; i < _handRenderers.Length; i++)
+                {
+                    if (_handRenderers[i].sharedMaterial != null)
+                        _originalMaterials[i] = new Material(_handRenderers[i].sharedMaterial);
+                }
+                Debug.Log($"[HandVisual] {_handRenderers.Length}개의 손 렌더러를 동적으로 찾았습니다.");
+                
+                if (_initialized)
+                {
+                    ApplyVisualMode(_currentMode);
+                }
+            }
         }
         else
         {
-            Debug.LogWarning("[HandVisual] 손 렌더러를 찾을 수 없습니다. Hand Tracking 오브젝트 하위에 이 스크립트를 배치하세요.");
+            if (_handRenderers == null)
+            {
+                Debug.LogWarning("[HandVisual] 손 렌더러를 찾을 수 없습니다. 렌더러가 생성되기를 기다립니다.");
+                _handRenderers = new Renderer[0];
+            }
         }
     }
 
     /// <summary>
     /// 커스텀 머티리얼이 없으면 자동으로 생성합니다.
+    /// Inspector에 저장된 색상값 대신 코드에서 정의한 회색을 강제 사용합니다.
     /// </summary>
     private void CreateMaterials()
     {
+        // Inspector에 저장된 파란색 값을 코드에서 강제로 회색으로 덮어쓰기
+        outlineColor = new Color(0.5f, 0.5f, 0.5f, 0.4f);
+        darkHandColor = new Color(0.15f, 0.15f, 0.2f, 0.9f);
+
         // 아웃라인 머티리얼 (밝은 회색 + 흰색 Emission 테두리 느낌)
         if (outlineMaterial == null)
         {
@@ -129,6 +201,7 @@ public class HandVisualController : MonoBehaviour
                 _autoOutlineMat.name = "AutoGenerated_HandOutline";
                 SetMaterialTransparent(_autoOutlineMat);
                 _autoOutlineMat.color = outlineColor;
+                _autoOutlineMat.SetColor("_BaseColor", outlineColor);
                 // 흰색 Emission으로 가장자리가 밝게 보이는 효과
                 _autoOutlineMat.EnableKeyword("_EMISSION");
                 _autoOutlineMat.SetColor("_EmissionColor", new Color(0.5f, 0.5f, 0.5f, 1f) * 0.15f);
@@ -145,6 +218,7 @@ public class HandVisualController : MonoBehaviour
                 _autoDarkMat.name = "AutoGenerated_DarkHand";
                 SetMaterialTransparent(_autoDarkMat);
                 _autoDarkMat.color = darkHandColor;
+                _autoDarkMat.SetColor("_BaseColor", darkHandColor);
             }
         }
     }
