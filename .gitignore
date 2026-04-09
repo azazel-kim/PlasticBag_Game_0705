@@ -70,5 +70,16 @@ crashlytics-build.properties
 ehthumbs.db
 Thumbs.db
 
+# Android build cache
+.utmp/
+
+# Burst debug info (Unity says "DoNotShip")
+*BurstDebugInformation_DoNotShip/
+
+# Build logs & reports
+build.log
+build_dev.log
+BUILD_DEPLOYMENT_REPORT.md
+
 # Claude Code session logs (private, not for version control)
 .claude/projects/
