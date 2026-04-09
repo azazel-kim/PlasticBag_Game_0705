@@ -19,7 +19,7 @@ public class BuildSamsungXR
         // 빌드 설정
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
         buildPlayerOptions.scenes = Array.ConvertAll(
-            EditorBuildSettings.scenes,
+            Array.FindAll(EditorBuildSettings.scenes, s => s.enabled),
             scene => scene.path
         );
         buildPlayerOptions.locationPathName = apkPath;

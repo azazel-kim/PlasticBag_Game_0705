@@ -1,0 +1,61 @@
+Unity Editor version:    6000.1.17f1 (c0b9d3899998)
+Branch:                  6000.1/staging
+Build type:              Release
+Batch mode:              YES
+macOS version:           Version 26.3.1 (a) (Build 25D771280a)
+Darwin version:          25.3.0
+Architecture:            arm64
+Running under Rosetta:   NO
+Available memory:        32768 MB
+Date:                    2026-04-01T05:04:12Z
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-user" at "2026-04-01T05:04:12.212735Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 65010, path: "/Applications/Unity Hub.app/Contents/Frameworks/UnityLicensingClient_V1.app/Contents/MacOS/Unity.Licensing.Client")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.17.4+4293ba1
+  Session Id:              f162d42f74684720bad661a1a1f231f1
+  Correlation Id:          84c15ffa3b48cdda6ff4c6acdba7c22b
+  External correlation Id: 5633158914731838904
+  Machine Id:              WFCsoz/Sl6m0/B+4hHCQCL/+ub8=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-user" (connect: 0.00s, validation: 0.02s, handshake: 0.32s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-user-notifications" at "2026-04-01T05:04:12.551561Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Serial number assigned to: "14569636577377-iankim72-UnityProStuXXXX"
+[Licensing::Client] Successfully updated license, isAync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+Pro License: YES
+Launching external process: /Applications/Unity/Hub/Editor/6000.1.17f1/Unity.app/Contents/Resources/PackageManager/Server/UnityPackageManager
+
+COMMAND LINE ARGUMENTS:
+/Applications/Unity/Hub/Editor/6000.1.17f1/Unity.app/Contents/MacOS/Unity
+-projectPath
+/Users/user/Projects/Unity/PlasticBag_Game_0705
+-executeMethod
+SamsungXRBuilder.BuildDevelopment
+-batchMode
+-nographics
+-quit
+Successfully changed project path to: /Users/user/Projects/Unity/PlasticBag_Game_0705
+/Users/user/Projects/Unity/PlasticBag_Game_0705
+It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/user/Projects/Unity/PlasticBag_Game_0705
+Fatal Error! It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/user/Projects/Unity/PlasticBag_Game_0705
+
+Aborting batchmode due to fatal error:
+It looks like another Unity instance is running with this project open.
+
+Multiple Unity instances cannot open the same project.
+
+Project: /Users/user/Projects/Unity/PlasticBag_Game_0705
+
+
+[Package Manager] Server process was shutdown

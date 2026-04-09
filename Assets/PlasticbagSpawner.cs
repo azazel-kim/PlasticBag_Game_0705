@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlasticbagSpawner : MonoBehaviour
 {
-    // ¾î¶² ÇÁ¸®ÆÕÀ» »ı¼ºÇÒÁö ÁöÁ¤ÇÏ´Â º¯¼ö´Â ±×´ë·Î À¯ÁöÇÕ´Ï´Ù.
     public GameObject prefabToSpawn;
 
     [Header("Spawn Settings")]
@@ -10,32 +10,58 @@ public class PlasticbagSpawner : MonoBehaviour
     public float spawnRadius = 1.5f;
     public float spawnHeightY = 1.5f;
 
-    // Å¸ÀÌ¸Ó °ü·Ã º¯¼öµéÀº ´õ ÀÌ»ó ÇÊ¿ä ¾øÀ¸¹Ç·Î »èÁ¦ÇÕ´Ï´Ù.
+    [Header("ìˆ˜ëŸ‰ ì œí•œ")]
+    [Tooltip("ë™ì‹œì— ì¡´ì¬í•  ìˆ˜ ìˆëŠ” ìµœëŒ€ ë´‰ì§€ ìˆ˜")]
+    public int maxBags = 10;
+
+    [Header("ìŠ¤í° ê°„ê²©")]
+    [Tooltip("ë´‰ì§€ ìƒì„± ê°„ê²© (ì´ˆ)")]
+    public float spawnInterval = 5f;
+
+    // í˜„ì¬ ì‚´ì•„ìˆëŠ” ë´‰ì§€ ëª©ë¡
+    private List<GameObject> _activeBags = new List<GameObject>();
+    private float _nextSpawnTime;
 
     void Start()
     {
-        // °ÔÀÓÀÌ ½ÃÀÛµÇÀÚ¸¶ÀÚ Ã¹ ¹øÂ° ºñ´ÒºÀÁö¸¦ »ı¼ºÇÕ´Ï´Ù.
+        // ì²« ë´‰ì§€ ì¦‰ì‹œ ìƒì„±
         SpawnPlasticbag();
+        _nextSpawnTime = Time.time + spawnInterval;
     }
 
-    // Update ÇÔ¼ö´Â ´õ ÀÌ»ó ÇÊ¿ä ¾øÀ¸¹Ç·Î »èÁ¦ÇÕ´Ï´Ù.
+    void Update()
+    {
+        // 5ì´ˆë§ˆë‹¤ ìµœëŒ€ ìˆ˜ëŸ‰ê¹Œì§€ ìë™ ìƒì„±
+        if (Time.time >= _nextSpawnTime)
+        {
+            if (_activeBags.Count < maxBags)
+            {
+                SpawnPlasticbag();
+            }
+            _nextSpawnTime = Time.time + spawnInterval;
+        }
+    }
 
-    // OnCollisionEnter ÇÔ¼öµµ ½ºÆ÷³ÊÀÇ ¿ªÇÒÀÌ ¾Æ´Ï¹Ç·Î »èÁ¦ÇÕ´Ï´Ù.
+    // ë´‰ì§€ê°€ íŒŒê´´ë  ë•Œ í˜¸ì¶œ (ë°”ë‹¥ ì¶©ëŒ ë˜ëŠ” 7íšŒ í„°ì¹˜)
+    public void OnBagDestroyed(GameObject bag)
+    {
+        _activeBags.Remove(bag);
+    }
 
-    // SpawnPlasticbag ÇÔ¼ö¸¦ ¼öÁ¤ÇÏ¿©, »ı¼ºµÈ ºÀÁö¿¡°Ô ÀÌ ½ºÅ©¸³Æ®ÀÇ Á¤º¸¸¦ ³Ñ°ÜÁİ´Ï´Ù.
     public void SpawnPlasticbag()
     {
+        if (prefabToSpawn == null) return;
+        // ìµœëŒ€ ìˆ˜ëŸ‰ ì²´í¬
+        if (_activeBags.Count >= maxBags) return;
+
         Vector3 randomOffsetFromSphere = Random.insideUnitSphere * spawnRadius;
         Vector3 spawnPosition = spawnAreaCenter + randomOffsetFromSphere;
         spawnPosition.y = spawnHeightY;
 
-        // 1. ÇÁ¸®ÆÕÀ» »ı¼ºÇÏ°í, »ı¼ºµÈ ÀÎ½ºÅÏ½º¸¦ 'newBag' º¯¼ö¿¡ ÀúÀåÇÕ´Ï´Ù.
         GameObject newBag = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        _activeBags.Add(newBag);
 
-        // 2. »ı¼ºµÈ 'newBag' ¿ÀºêÁ§Æ®¿¡¼­ 'PlasticBag' ½ºÅ©¸³Æ® ÄÄÆ÷³ÍÆ®¸¦ Ã£½À´Ï´Ù.
         PlasticBag bagScript = newBag.GetComponent<PlasticBag>();
-
-        // 3. ¸¸¾à ½ºÅ©¸³Æ®¸¦ Ã£¾Ò´Ù¸é, ±× ½ºÅ©¸³Æ®ÀÇ 'spawner' º¯¼ö¿¡ ÀÚ±â ÀÚ½Å(this)À» ÇÒ´çÇÕ´Ï´Ù.
         if (bagScript != null)
         {
             bagScript.spawner = this;

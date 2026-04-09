@@ -57,6 +57,43 @@
 - **모바일 렌더링 경로**: 1 (Forward Rendering)
 - **활성화된 기능**: ShaderGraph, RenderGraph (비활성)
 
+## 빌드 스크립트 (확인됨)
+### SamsungXRBuilder.cs
+**위치**: `/Users/user/Projects/Unity/PlasticBag_Game_0705/Assets/Editor/SamsungXRBuilder.cs`
+- **기능**: Development/Release APK 빌드 자동화
+- **메뉴**: Build > Samsung XR - Development/Release APK
+- **주요 기능**:
+  - IL2CPP 검증
+  - ARM64 아키텍처 확인
+  - Bundle Version Code 자동 증가
+  - Graphics API 확인
+  - 씬 목록 검증
+
+### BuildSamsungXR.cs
+**위치**: `/Users/user/Projects/Unity/PlasticBag_Game_0705/Assets/Editor/BuildSamsungXR.cs`
+- **기능**: APK 빌드 및 타임스탬프 추가
+- **메뉴**: Build > Build Samsung XR APK
+- **버전**: 1.2.2 (스크립트 내 하드코딩, 자동 증가 필요)
+
+## 빌드 결과 (2026-04-01)
+### Development APK 빌드
+- **파일명**: PlasticBagGame_SamsungXR_Dev.apk
+- **파일 크기**: 110 MB (설치 후 전체 빌드 크기: 1597.7MB)
+- **빌드 시간**: ~7분 10초
+- **Bundle Version Code**: 1 → 2 (자동 증가)
+- **상태**: ✓ 성공
+
+### ADB 설치 (R3KYB032YLY)
+- **설치 상태**: ✓ 성공 ("Success")
+- **패키지명**: com.DXPLap.PlasticBagGame
+- **Activity**: com.unity3d.player.UnityPlayerGameActivity (정확한 이름)
+
+## 디바이스 연결 정보
+- **디바이스 모델**: Samsung Galaxy XR (SM_I610)
+- **디바이스 ID**: R3KYB032YLY
+- **ADB 경로**: `/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb`
+- **연결 상태**: ✓ 항상 정상
+
 ## 식별된 주요 이슈 및 개선사항
 
 ### 1. Target SDK 업그레이드 필요
@@ -64,26 +101,38 @@
 - 권장: API 34-35 (Google Play 정책, 2024)
 - 영향: 앱 스토어 심사, 보안, 성능
 
-### 2. Graphics API 설정 확인 불가
-- ProjectSettings.asset에서 androidGraphicsAPIs 직접 설정 미확인
-- Vulkan 명시 설정 필요 (Samsung XR는 Vulkan 권장)
+### 2. Activity 클래스 선택 (해결됨)
+- **오류**: `com.unity3d.player.UnityPlayerActivity` 사용 시 Activity not found
+- **해결**: `com.unity3d.player.UnityPlayerGameActivity` 사용 (Unity 6 표준)
+- **확인**: `aapt dump badging` 명령어로 APK 내 Activity 검증
+- **상태**: ✓ 완료
 
-### 3. 빌드 스크립트 부재
-- Assets/Editor 폴더에 커스텀 빌드 스크립트 없음
-- Samsung XR/OpenXR 빌드 자동화 필요
+### 3. Unity 에디터 충돌 (해결됨)
+- **원인**: 동일 프로젝트에서 2개 이상 Unity 인스턴스 실행 불가
+- **해결**: `kill -TERM` 후 커맨드라인 빌드 실행
+- **상태**: ✓ 완료
 
-### 4. XRManagementSettings 구성 확인
-- EditorBuildSettings.asset에서는 OpenXR 로더 참조만 확인
-- 런타임 Loader 활성화 상태 명시적 확인 필요
-
-### 5. 씬 구성
+### 4. 씬 구성 (확인됨)
 - 빌드 씬: 1_Start_Scene_with_Analyze.unity (활성)
-- 2번째 씬 3-1_PlasticBagPlay_with_Analyze.unity (비활성)
+- 2번째 씬 3-1_PlasticBagPlay_with_Analyze.unity (활성)
 - Analyze 관련 코드 제거 검토 필요 (릴리스 빌드)
 
+## 주요 트러블슈팅 패턴
+### 빌드 프로세스
+1. Unity 에디터 실행 중인 경우, 먼저 종료: `kill -TERM [PID]`
+2. 커맨드라인 빌드 실행: `-executeMethod SamsungXRBuilder.BuildDevelopment`
+3. IL2CPP 컴파일 + Gradle 빌드 단계 (약 7분 소요)
+4. APK 생성 확인: `ls -lh Builds/*.apk`
+
+### ADB 설치 및 실행
+1. 디바이스 연결 확인: `adb devices`
+2. APK 설치: `adb -s [DEVICE_ID] install -r [APK_PATH]`
+3. Activity 확인 (올바른 이름 필수): `aapt dump badging [APK_FILE]`
+4. 앱 실행: `adb -s [DEVICE_ID] shell am start -n [PACKAGE]/[ACTIVITY]`
+
 ## 다음 단계
-1. Target SDK 업데이트 (32 → 34+)
-2. Graphics API 설정 명시 (Vulkan 우선)
-3. 빌드 자동화 스크립트 작성
-4. XR Loader 런타임 활성화 검증
-5. Analyze 씬 리소스 정리
+1. Release APK 빌드 (Debug 심볼 제거)
+2. Target SDK 업그레이드 (32 → 34+)
+3. APK 크기 최적화 (Analyze APK 도구 사용)
+4. Samsung XR Store 스토어 심사 준비
+5. Performance Profiler로 성능 분석

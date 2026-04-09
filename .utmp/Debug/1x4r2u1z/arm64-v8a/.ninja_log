@@ -1,0 +1,12 @@
+# ninja log v5
+2	315	1775020596275609772	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	24adc5d438300089
+316	545	1775020596477586090	/Users/user/Projects/Unity/PlasticBag_Game_0705/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/1x4r2u1z/obj/arm64-v8a/libswappywrapper.so	e84c72f8fc7f868
+1	1149	1775020597106083091	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	87ddd26bf7788231
+1	1164	1775020597118473698	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7310a053dc2ef74d
+1	1175	1775020597132567325	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	8b86e5cdf776a45a
+0	1186	1775020597143024156	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	5aeeb381b23e517b
+0	1209	1775020597165891516	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	5ed2b4ef4f60043b
+1	1255	1775020597213296666	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	57dae1611198c9d5
+1	1303	1775020597258930989	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	56bf31004299e10a
+0	1338	1775020597294164626	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	bea393b9f0d556d5
+1338	1479	1775020597435815811	/Users/user/Projects/Unity/PlasticBag_Game_0705/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/1x4r2u1z/obj/arm64-v8a/libgame.so	7a89bbd91e1b76ca

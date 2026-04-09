@@ -4,7 +4,8 @@
       "Read(//Users/user/Projects/Unity/PlasticBag_Game_0705/**)",
       "Bash($ADB uninstall:*)",
       "Bash($ADB shell:*)",
-      "Bash($ADB install:*)"
+      "Bash($ADB install:*)",
+      "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb -s R3KYB032YLY shell am start -n com.DXPLap.XRExergamePlasticBagGame/com.unity3d.player.UnityPlayerGameActivity)"
     ],
     "additionalDirectories": [
       "/Users/user/Projects/Unity/xr-unity-samples/AndroidXRUnitySamples/.claude",

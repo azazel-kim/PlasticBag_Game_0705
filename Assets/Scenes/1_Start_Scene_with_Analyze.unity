@@ -622,7 +622,7 @@ MonoBehaviour:
   rotationAudioSource: {fileID: 382092619}
   oneShotAudioSource: {fileID: 569858529}
   fadeCanvasGroup: {fileID: 478655039}
-  fadeDuration: 0.7
+  fadeDuration: 1.4
   sceneToLoad: 3-1_PlasticBagPlay_with_Analyze
 --- !u!65 &569858534
 BoxCollider:
@@ -631,7 +631,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 569858528}
-  m_Material: {fileID: 963814049}
+  m_Material: {fileID: 901576740}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -682,22 +682,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneToLoad: 3-1_PlasticBagPlay_with_Analyze
-  delayBeforeLoad: 0.3
+  delayBeforeLoad: 0.6
   boundsExpansion: 0.05
   fadeCanvasGroup: {fileID: 478655039}
-  fadeDuration: 0.5
-  touchSound: {fileID: 0}
+  fadeDuration: 1
+  touchSound: {fileID: 8300000, guid: 2a9989f4511cbc34cbca06ee880e9c6b, type: 3}
   touchVolume: 1
   targetRenderer: {fileID: 0}
   highlightColor: {r: 0, g: 1, b: 0, a: 1}
   showDebugMessages: 1
---- !u!134 &963814049
+--- !u!134 &901576740
 PhysicsMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: 
+  m_Name: ' (Instance)'
   serializedVersion: 2
   m_DynamicFriction: 0.6
   m_StaticFriction: 0.6
@@ -900,7 +900,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03719c201379546e98cecc82414f2090, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  disableEntireComponent: 0
 --- !u!4 &1694062929 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 275690433121803809, guid: 21c93a7aa2fabf0459b8c327ab843bdf, type: 3}
