@@ -9,7 +9,7 @@ public class BuildSamsungXR
     [MenuItem("Build/Build Samsung XR APK")]
     public static void BuildAPK()
     {
-        string projectPath = "/Users/user/Projects/Unity/PlasticBag_Game_0705";
+        string projectPath = System.IO.Path.GetDirectoryName(Application.dataPath);
         string buildDir = Path.Combine(projectPath, "Builds");
         Directory.CreateDirectory(buildDir);
 
