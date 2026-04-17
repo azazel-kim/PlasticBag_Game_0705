@@ -34,6 +34,9 @@ from .udp_protocol import (
     ENGAGEMENT_PORT,
     CONTROL_PORT,
 )
+from .fusion_pipeline import FusionPipeline, PipelineStats
+from .mediapipe_bridge import MediaPipeBridge, MediaPipeConfig
+from .xsens_bridge import XSensBridge, XSensConfig, XSensMode
 
 __version__ = "0.1.0"
 
@@ -61,4 +64,14 @@ __all__ = [
     "FUSED_FRAME_PORT",
     "ENGAGEMENT_PORT",
     "CONTROL_PORT",
+    # 융합 파이프라인
+    "FusionPipeline",
+    "PipelineStats",
+    # MediaPipe 브릿지
+    "MediaPipeBridge",
+    "MediaPipeConfig",
+    # X-Sens 브릿지
+    "XSensBridge",
+    "XSensConfig",
+    "XSensMode",
 ]

@@ -1,15 +1,11 @@
 // BlendShapeSensor.cs
 // Samsung Galaxy XR IR 페이스 트래킹 카메라로부터 블렌드셰이프 데이터 수집
-// XRFaceTrackingFeature (Google XR Extensions)를 통해 68 FACS 계수를 @72Hz 수집
-// Unity 6000.1.17f1, Android XR, OpenXR + Google XR Extensions
+// XRFaceTrackingManager (Google XR Extensions)를 통해 블렌드셰이프 계수를 수집
+// Unity 6000.1.17f1, Android XR, OpenXR + Google XR Extensions v1.2.0
 
 using System;
-using System.IO;
 using UnityEngine;
-
-// TODO: Google XR Extensions 패키지가 프로젝트에 추가된 후 아래 using 주석 해제
-// using Google.XR.Extensions;
-// using UnityEngine.XR.OpenXR.Features;
+using Google.XR.Extensions;
 
 namespace XRExergame.Sensors
 {
@@ -20,18 +16,18 @@ namespace XRExergame.Sensors
     public struct BlendShapeData
     {
         /// <summary>
-        /// 68개 FACS(얼굴 움직임 코딩 시스템) 블렌드셰이프 가중치.
+        /// 블렌드셰이프 가중치 배열.
         /// 각 값 범위: 0.0(근육 이완) ~ 1.0(최대 수축).
-        /// 인덱스 매핑은 XRFaceTrackingFeature.BlendShapeIndex 열거형 참조.
+        /// 인덱스 매핑은 XRFaceParameterIndices 열거형 참조.
         /// </summary>
         public float[] Weights;
 
         /// <summary>
         /// 3개 얼굴 영역별 신뢰도 (0.0 ~ 1.0).
-        /// [0] = 상안면 (이마, 눈썹)
-        /// [1] = 중안면 (눈, 코)
-        /// [2] = 하안면 (입, 턱)
-        /// 신뢰도가 낮으면 해당 영역 가중치 사용 금지.
+        /// [0] = Lower (하안면: 입, 턱)
+        /// [1] = LeftUpper (좌측 상안면: 왼쪽 눈, 이마)
+        /// [2] = RightUpper (우측 상안면: 오른쪽 눈, 이마)
+        /// XRFaceConfidenceRegion 열거형과 동일 순서.
         /// </summary>
         public float[] RegionConfidence;
 
@@ -44,9 +40,14 @@ namespace XRExergame.Sensors
 
     /// <summary>
     /// Samsung Galaxy XR 온디바이스 IR 카메라로 블렌드셰이프를 수집하는 센서 래퍼.
-    /// XRFaceTrackingFeature (Google XR Extensions) API에 연동함.
+    /// XRFaceTrackingManager (Google XR Extensions) API에 연동함.
     /// ISensorProvider 인터페이스를 구현하여 FusedDataFrame에 데이터를 공급함.
+    ///
+    /// 사용 방법:
+    ///   이 컴포넌트와 함께 XRFaceTrackingManager를 같은 GameObject에 추가해야 함.
+    ///   (RequireComponent 어트리뷰트로 자동 강제됨)
     /// </summary>
+    [RequireComponent(typeof(XRFaceTrackingManager))]
     public class BlendShapeSensor : MonoBehaviour, ISensorProvider<BlendShapeData>
     {
         // ─────────────────────────────────────────
@@ -57,37 +58,26 @@ namespace XRExergame.Sensors
         [Tooltip("블렌드셰이프 신뢰도가 이 값 미만이면 해당 영역 데이터를 무시함")]
         [SerializeField] private float _confidenceThreshold = 0.5f;
 
-        [Tooltip("센서 폴링 주파수 (Hz). 하드웨어 최대치는 72Hz)")]
+        [Tooltip("센서 폴링 주파수 (Hz). 하드웨어 최대치는 72Hz")]
         [SerializeField] private float _targetSampleRateHz = 72f;
 
-        [Header("CSV 로깅 (디버그용)")]
-        [Tooltip("활성화하면 블렌드셰이프 데이터를 CSV로 저장함")]
-        [SerializeField] private bool _enableCsvLogging = false;
+        // ─────────────────────────────────────────
+        // 내부 컴포넌트 참조 (캐싱)
+        // ─────────────────────────────────────────
 
-        [Tooltip("CSV 파일 저장 경로. 비워두면 Application.persistentDataPath 사용")]
-        [SerializeField] private string _csvLogPath = "";
+        // XRFaceTrackingManager: Google XR Extensions가 제공하는 페이스 트래킹 관리자
+        // Awake에서 GetComponent로 캐싱하여 반복 호출 비용 제거
+        private XRFaceTrackingManager _faceManager;
 
         // ─────────────────────────────────────────
         // 내부 상태
         // ─────────────────────────────────────────
 
-        // 블렌드셰이프 가중치 배열 (68개). 매 프레임 재사용하여 GC 방지
-        private float[] _weightBuffer = new float[68];
-
-        // 3개 영역 신뢰도 배열
-        private float[] _confidenceBuffer = new float[3];
-
         // 가장 최근 수집된 데이터
         private BlendShapeData? _latestData = null;
 
-        // 센서 준비 완료 여부
+        // 센서 준비 완료 여부 (트래킹 상태가 Tracking이면 true)
         private bool _isAvailable = false;
-
-        // 퍼미션 요청 완료 여부
-        private bool _permissionRequested = false;
-
-        // CSV 로깅용 StreamWriter
-        private StreamWriter _csvWriter = null;
 
         // 폴링 간격 추적 (샘플레이트 제어용)
         private float _nextSampleTime = 0f;
@@ -114,18 +104,8 @@ namespace XRExergame.Sensors
 
         private void Awake()
         {
-            // 버퍼 초기화 (GC 방지를 위해 Awake에서 한 번만 할당)
-            _weightBuffer = new float[68];
-            _confidenceBuffer = new float[3];
-        }
-
-        private void Start()
-        {
-            RequestFaceTrackingPermission();
-            InitializeFaceTracking();
-
-            if (_enableCsvLogging)
-                InitializeCsvLogger();
+            // XRFaceTrackingManager 컴포넌트 캐싱 (RequireComponent로 반드시 존재함)
+            _faceManager = GetComponent<XRFaceTrackingManager>();
         }
 
         private void Update()
@@ -139,220 +119,156 @@ namespace XRExergame.Sensors
             PollFaceTrackingData();
         }
 
-        private void OnDestroy()
-        {
-            _csvWriter?.Close();
-            _csvWriter = null;
-        }
-
-        // ─────────────────────────────────────────
-        // 퍼미션 요청
-        // ─────────────────────────────────────────
-
-        /// <summary>
-        /// Android XR에서 페이스 트래킹 런타임 퍼미션을 요청함.
-        /// </summary>
-        private void RequestFaceTrackingPermission()
-        {
-#if !UNITY_EDITOR
-            // Android 런타임 퍼미션: 페이스 트래킹은 별도 퍼미션 필요
-            const string faceTrackingPermission = "android.permission.FACE_TRACKING";
-
-            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(faceTrackingPermission))
-            {
-                Debug.Log("[BlendShapeSensor] Face Tracking 퍼미션 요청 중...");
-                UnityEngine.Android.Permission.RequestUserPermission(faceTrackingPermission);
-            }
-            else
-            {
-                Debug.Log("[BlendShapeSensor] Face Tracking 퍼미션 이미 허용됨");
-            }
-#else
-            Debug.Log("[BlendShapeSensor] 에디터 모드: 퍼미션 요청 스킵");
-#endif
-            _permissionRequested = true;
-        }
-
-        // ─────────────────────────────────────────
-        // Face Tracking 초기화
-        // ─────────────────────────────────────────
-
-        /// <summary>
-        /// XRFaceTrackingFeature를 OpenXR 세션에서 가져와서 활성화 확인.
-        /// </summary>
-        private void InitializeFaceTracking()
-        {
-            // TODO: Google XR Extensions 패키지 추가 후 아래 코드 활성화
-            // ─── 실제 API 연동 지점 (BEGIN) ───────────────────────────────────────
-            //
-            // var faceTrackingFeature = OpenXRSettings.Instance
-            //     .GetFeature<XRFaceTrackingFeature>();
-            //
-            // if (faceTrackingFeature == null)
-            // {
-            //     Debug.LogWarning("[BlendShapeSensor] XRFaceTrackingFeature를 찾을 수 없음. " +
-            //         "OpenXR Project Settings > Features에서 'Face Tracking' 활성화 필요.");
-            //     _isAvailable = false;
-            //     return;
-            // }
-            //
-            // if (!faceTrackingFeature.enabled)
-            // {
-            //     Debug.LogWarning("[BlendShapeSensor] XRFaceTrackingFeature가 비활성화됨.");
-            //     _isAvailable = false;
-            //     return;
-            // }
-            //
-            // _isAvailable = true;
-            // Debug.Log("[BlendShapeSensor] XRFaceTrackingFeature 초기화 완료.");
-            //
-            // ─── 실제 API 연동 지점 (END) ─────────────────────────────────────────
-
-            // 임시: 에디터에서는 항상 가용 상태로 처리
-#if UNITY_EDITOR
-            _isAvailable = true;
-            Debug.Log("[BlendShapeSensor] 에디터 모드: 더미 데이터 모드로 초기화됨");
-#else
-            // 디바이스에서는 퍼미션 확인 후 가용 여부 결정
-            // TODO: 실제 XRFaceTrackingFeature 연동 후 이 부분 교체
-            _isAvailable = _permissionRequested;
-            Debug.Log($"[BlendShapeSensor] 디바이스 초기화 (임시): isAvailable={_isAvailable}");
-#endif
-        }
-
         // ─────────────────────────────────────────
         // 데이터 폴링
         // ─────────────────────────────────────────
 
         /// <summary>
-        /// 매 샘플 주기마다 호출. XRFaceTrackingFeature에서 블렌드셰이프 가중치를 읽어옴.
+        /// 매 샘플 주기마다 호출. XRFaceTrackingManager.Face에서 블렌드셰이프 가중치를 읽어옴.
+        /// 에디터에서는 더미 사인파 데이터를 생성하여 파이프라인 테스트 가능.
         /// </summary>
         private void PollFaceTrackingData()
         {
-            if (!_isAvailable)
-                return;
-
-            // TODO: Google XR Extensions 패키지 추가 후 아래 코드 활성화
-            // ─── 실제 API 연동 지점 (BEGIN) ───────────────────────────────────────
-            //
-            // XRFaceTrackingFeature 사용 예시:
-            //
-            // var faceTrackingFeature = OpenXRSettings.Instance
-            //     .GetFeature<XRFaceTrackingFeature>();
-            //
-            // // 블렌드셰이프 가중치 읽기 (NativeArray<float> 반환)
-            // bool success = faceTrackingFeature.TryGetFaceExpressionWeights(
-            //     out NativeArray<float> weights,
-            //     out XRFaceTrackingFeature.RegionConfidence confidence);
-            //
-            // if (!success || !weights.IsCreated)
-            //     return;
-            //
-            // // NativeArray → managed float[] 복사 (GC 최소화)
-            // weights.CopyTo(_weightBuffer);
-            //
-            // // 3개 영역 신뢰도 추출
-            // _confidenceBuffer[0] = confidence.Upper; // 상안면
-            // _confidenceBuffer[1] = confidence.Mid;   // 중안면
-            // _confidenceBuffer[2] = confidence.Lower; // 하안면
-            //
-            // ─── 실제 API 연동 지점 (END) ─────────────────────────────────────────
-
 #if UNITY_EDITOR
             // 에디터 더미 데이터: 사인파로 블렌드셰이프 시뮬레이션
-            float t = Time.time;
-            for (int i = 0; i < 68; i++)
-                _weightBuffer[i] = Mathf.Abs(Mathf.Sin(t * (1f + i * 0.05f))) * 0.3f;
-            _confidenceBuffer[0] = 0.9f;
-            _confidenceBuffer[1] = 0.9f;
-            _confidenceBuffer[2] = 0.85f;
+            PollEditorDummyData();
+#else
+            // 디바이스 실제 데이터: XRFaceTrackingManager에서 읽기
+            PollDeviceData();
 #endif
+        }
 
-            // 신뢰도 검사: 모든 영역이 임계값 미만이면 드롭
-            bool anyRegionValid = _confidenceBuffer[0] >= _confidenceThreshold
-                               || _confidenceBuffer[1] >= _confidenceThreshold
-                               || _confidenceBuffer[2] >= _confidenceThreshold;
+        /// <summary>
+        /// 에디터 전용 더미 데이터 생성.
+        /// 파이프라인(FusedDataFrame, UDP, CSV)을 디바이스 없이 테스트할 때 사용.
+        /// </summary>
+        private void PollEditorDummyData()
+        {
+            // 파라미터 개수를 런타임에 열거형에서 읽어 향후 API 변경에 대응
+            int paramCount = Enum.GetNames(typeof(XRFaceParameterIndices)).Length;
+            float[] weights = new float[paramCount];
+            float t = Time.time;
+            for (int i = 0; i < paramCount; i++)
+                weights[i] = Mathf.Abs(Mathf.Sin(t * (1f + i * 0.05f))) * 0.3f;
 
-            if (!anyRegionValid)
+            // 신뢰도: [0]=Lower, [1]=LeftUpper, [2]=RightUpper
+            float[] confidence = new float[3] { 0.85f, 0.9f, 0.9f };
+
+            _isAvailable = true;
+            PublishData(weights, confidence);
+        }
+
+        /// <summary>
+        /// 디바이스 전용 실제 데이터 폴링.
+        /// XRFaceTrackingManager가 매 Update마다 갱신한 XRFaceState를 읽어옴.
+        /// </summary>
+        private void PollDeviceData()
+        {
+            // XRFaceTrackingFeature 익스텐션이 활성화됐는지 확인
+            // null이면 아직 XrInstance 초기화 전 → 대기
+            if (!XRFaceTrackingFeature.IsFaceTrackingExtensionEnabled.HasValue)
             {
-                Debug.LogWarning("[BlendShapeSensor] 전 영역 신뢰도 임계값 미달, 프레임 드롭");
+                if (_isAvailable)
+                {
+                    _isAvailable = false;
+                    Debug.Log("[BlendShapeSensor] XrInstance 초기화 대기 중...");
+                }
                 return;
             }
 
-            // BlendShapeData 구조체 생성 (new float[] 대신 기존 버퍼 복사로 GC 방지)
+            if (!XRFaceTrackingFeature.IsFaceTrackingExtensionEnabled.Value)
+            {
+                if (_isAvailable)
+                {
+                    _isAvailable = false;
+                    Debug.LogWarning("[BlendShapeSensor] XR_ANDROID_face_tracking 익스텐션 비활성화. " +
+                        "OpenXR Project Settings > Features > 'Android XR: Face Tracking' 활성화 필요.");
+                }
+                return;
+            }
+
+            // 트래킹 상태 확인: Tracking 상태일 때만 데이터 수집
+            XRFaceState face = _faceManager.Face;
+            bool isTracking = face.TrackingState == XRFaceTrackingStates.Tracking;
+
+            if (!isTracking)
+            {
+                // 처음 비가용 전환 시 한 번만 로그
+                if (_isAvailable)
+                {
+                    _isAvailable = false;
+                    Debug.LogWarning($"[BlendShapeSensor] 트래킹 중단: {face.TrackingState}. " +
+                        "HMD를 착용하고 페이스 트래킹 캘리브레이션 필요.");
+                }
+                return;
+            }
+
+            // IsValid: 이번 프레임에 유효한 데이터가 없어도 이전 데이터를 사용할 수 있음
+            // 단, 처음 Tracking 진입 후 IsValid가 false이면 아직 데이터 미수신
+            if (!face.IsValid)
+            {
+                if (!_isAvailable)
+                    Debug.Log("[BlendShapeSensor] Tracking 상태 진입. 유효 데이터 대기 중...");
+                return;
+            }
+
+            // 정상 트래킹 중
+            if (!_isAvailable)
+            {
+                _isAvailable = true;
+                Debug.Log("[BlendShapeSensor] 페이스 트래킹 활성화. 데이터 수집 시작.");
+            }
+
+            // Parameters가 null이거나 비어있으면 초기화 미완료
+            if (face.Parameters == null || face.Parameters.Length == 0)
+                return;
+
+            // ConfidenceRegions가 null이거나 3개 미만이면 신뢰도 전부 1.0으로 폴백
+            float[] confidence;
+            if (face.ConfidenceRegions != null && face.ConfidenceRegions.Length >= 3)
+            {
+                confidence = face.ConfidenceRegions;
+            }
+            else
+            {
+                // 신뢰도 데이터 없음 → 폴백: 모든 영역 신뢰도 1.0
+                confidence = new float[3] { 1f, 1f, 1f };
+            }
+
+            PublishData(face.Parameters, confidence);
+        }
+
+        /// <summary>
+        /// 신뢰도 검사 후 BlendShapeData를 생성하여 이벤트로 발행.
+        /// </summary>
+        /// <param name="weights">블렌드셰이프 가중치 배열</param>
+        /// <param name="confidence">3개 영역 신뢰도 배열 ([0]=Lower, [1]=LeftUpper, [2]=RightUpper)</param>
+        private void PublishData(float[] weights, float[] confidence)
+        {
+            // 신뢰도 검사: 모든 영역이 임계값 미만이면 드롭
+            bool anyRegionValid = confidence[0] >= _confidenceThreshold
+                               || confidence[1] >= _confidenceThreshold
+                               || confidence[2] >= _confidenceThreshold;
+
+            if (!anyRegionValid)
+            {
+                Debug.LogWarning("[BlendShapeSensor] 전 영역 신뢰도 임계값 미달, 프레임 드롭 " +
+                    $"(Lower={confidence[0]:F2}, LeftUpper={confidence[1]:F2}, RightUpper={confidence[2]:F2})");
+                return;
+            }
+
+            // BlendShapeData 구조체 생성 (Clone으로 원본 배열 변형 방지)
             var data = new BlendShapeData
             {
-                Weights          = (float[])_weightBuffer.Clone(),
-                RegionConfidence = (float[])_confidenceBuffer.Clone(),
+                Weights          = (float[])weights.Clone(),
+                RegionConfidence = (float[])confidence.Clone(),
                 TimestampMs      = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
             _latestData = data;
 
-            // 이벤트 발행: FusedDataFrame 등 구독자에게 알림
+            // 이벤트 발행: FusedDataFrame, BlendShapeLogger 등 구독자에게 알림
             OnDataUpdated?.Invoke(data);
-
-            // CSV 로깅 (디버그용)
-            if (_enableCsvLogging && _csvWriter != null)
-                WriteCsvRow(data);
-        }
-
-        // ─────────────────────────────────────────
-        // CSV 로깅 (디버그용)
-        // ─────────────────────────────────────────
-
-        /// <summary>
-        /// CSV 로거 초기화. persistentDataPath 또는 지정 경로에 파일 생성.
-        /// </summary>
-        private void InitializeCsvLogger()
-        {
-            try
-            {
-                string dir = string.IsNullOrEmpty(_csvLogPath)
-                    ? Application.persistentDataPath
-                    : _csvLogPath;
-
-                string fileName = $"blendshape_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-                string fullPath = Path.Combine(dir, fileName);
-
-                _csvWriter = new StreamWriter(fullPath, append: false);
-
-                // 헤더 작성: 타임스탬프 + 68개 가중치 + 3개 신뢰도
-                var header = new System.Text.StringBuilder("TimestampMs");
-                for (int i = 0; i < 68; i++)
-                    header.Append($",BS_{i:D2}");
-                header.Append(",Conf_Upper,Conf_Mid,Conf_Lower");
-
-                _csvWriter.WriteLine(header.ToString());
-                Debug.Log($"[BlendShapeSensor] CSV 로깅 시작: {fullPath}");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[BlendShapeSensor] CSV 초기화 실패: {e.Message}");
-                _enableCsvLogging = false;
-            }
-        }
-
-        /// <summary>
-        /// BlendShapeData 한 행을 CSV에 기록.
-        /// </summary>
-        private void WriteCsvRow(BlendShapeData data)
-        {
-            try
-            {
-                var row = new System.Text.StringBuilder(data.TimestampMs.ToString());
-                for (int i = 0; i < data.Weights.Length; i++)
-                    row.Append($",{data.Weights[i]:F4}");
-                row.Append($",{data.RegionConfidence[0]:F3}");
-                row.Append($",{data.RegionConfidence[1]:F3}");
-                row.Append($",{data.RegionConfidence[2]:F3}");
-
-                _csvWriter.WriteLine(row.ToString());
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[BlendShapeSensor] CSV 쓰기 실패: {e.Message}");
-            }
         }
     }
 }
