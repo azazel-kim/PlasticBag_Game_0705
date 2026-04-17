@@ -1,3 +1,3 @@
 # Multi-Sensor Fusion Engineer - Agent Memory
 
-<!-- 아직 프로젝트 데이터 없음. 센서 융합 구현 시 여기에 기록 -->
+- [Fusion DTO Infrastructure](project_fusion_dto_infra.md) — FusedDataFrame/RingBuffer/TimeSyncAligner/UdpProtocol 4개 파일 생성 완료 (2026-04-17)

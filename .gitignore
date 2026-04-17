@@ -83,3 +83,4 @@ BUILD_DEPLOYMENT_REPORT.md
 
 # Claude Code session logs (private, not for version control)
 .claude/projects/
+python/**/__pycache__/
