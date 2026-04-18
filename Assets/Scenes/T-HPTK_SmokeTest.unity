@@ -214,6 +214,66 @@ MonoBehaviour:
   handedness: 1
   colliderRadius: 0.025
   palmColliderRadius: 0.05
+--- !u!114 &118099178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118099169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 934d33e8c1b704ad3bec7d74ad161a69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  handSide: 0
+  smoothing: 0.3
+--- !u!114 &118099179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118099169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 703a6950d77b240d5af44a6576bd5b67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  side: 1
+  bones: []
+  wrist:
+    name: 
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+    space: 0
+    localScale: {x: 0, y: 0, z: 0}
+  forearm:
+    name: 
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+    space: 0
+    localScale: {x: 0, y: 0, z: 0}
+  thumb:
+    finger: 1
+    bones: []
+  index:
+    finger: 2
+    bones: []
+  middle:
+    finger: 3
+    bones: []
+  ring:
+    finger: 4
+    bones: []
+  pinky:
+    finger: 5
+    bones: []
+  confidence: 0
+  scale: 1
+  log: 
+  source: {fileID: 0}
+  verboseLog: 1
 --- !u!1 &236621321
 GameObject:
   m_ObjectHideFlags: 0
@@ -301,6 +361,8 @@ MonoBehaviour:
   spawnHeightY: 1.6
   maxBags: 5
   spawnInterval: 5
+  autoStart: 1
+  autoStartDelay: 2
 --- !u!4 &236621325
 Transform:
   m_ObjectHideFlags: 0
@@ -524,6 +586,66 @@ MonoBehaviour:
   handedness: 2
   colliderRadius: 0.025
   palmColliderRadius: 0.05
+--- !u!114 &783634052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 783634043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 703a6950d77b240d5af44a6576bd5b67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  side: 1
+  bones: []
+  wrist:
+    name: 
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+    space: 0
+    localScale: {x: 0, y: 0, z: 0}
+  forearm:
+    name: 
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+    space: 0
+    localScale: {x: 0, y: 0, z: 0}
+  thumb:
+    finger: 1
+    bones: []
+  index:
+    finger: 2
+    bones: []
+  middle:
+    finger: 3
+    bones: []
+  ring:
+    finger: 4
+    bones: []
+  pinky:
+    finger: 5
+    bones: []
+  confidence: 0
+  scale: 1
+  log: 
+  source: {fileID: 0}
+  verboseLog: 1
+--- !u!114 &783634053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 783634043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 934d33e8c1b704ad3bec7d74ad161a69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  handSide: 1
+  smoothing: 0.3
 --- !u!1 &877744293
 GameObject:
   m_ObjectHideFlags: 0
@@ -660,6 +782,11 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
+--- !u!4 &989551464 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3007526856745203076, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+  m_PrefabInstance: {fileID: 1984253419}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1000759901
 GameObject:
   m_ObjectHideFlags: 0
@@ -809,6 +936,65 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
+--- !u!1 &1131380103
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1131380105}
+  - component: {fileID: 1131380104}
+  m_Layer: 0
+  m_Name: HPTK Core
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1131380104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1131380103}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a155bb7515c45a4daef72413fe3f703, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  trackedCamera: {fileID: 1984253420}
+  trackingSpace: {fileID: 989551464}
+  defaultConfAssets: []
+  leftEditorIdp: {fileID: 118099179}
+  leftBuildIdp: {fileID: 118099179}
+  rightEditorIdp: {fileID: 783634052}
+  rightBuildIdp: {fileID: 783634052}
+  controlsUpdateCalls: 1
+  applyThisLayerToAvatars: HPTK
+  onAvatarEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  onAvatarLeft:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1131380105
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1131380103}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1201169126
 GameObject:
   m_ObjectHideFlags: 0
@@ -842,7 +1028,6 @@ MonoBehaviour:
   distanceFromCamera: 0.7
   heightOffset: -0.8
   showOnStart: 1
-  gazeSelectTime: 2
 --- !u!114 &1201169128
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1075,6 +1260,8 @@ MonoBehaviour:
   spawnHeightY: 1.4
   maxBags: 10
   spawnInterval: 5
+  autoStart: 1
+  autoStartDelay: 2
 --- !u!54 &1382525470
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1548,6 +1735,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3371622059563238286, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
       insertIndex: -1
       addedObject: {fileID: 118099177}
+    - targetCorrespondingSourceObject: {fileID: 3371622059563238286, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 118099178}
+    - targetCorrespondingSourceObject: {fileID: 3371622059563238286, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 118099179}
     - targetCorrespondingSourceObject: {fileID: 1339675120566002848, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1984253426}
@@ -1557,6 +1750,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4078826347819545275, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
       insertIndex: -1
       addedObject: {fileID: 783634051}
+    - targetCorrespondingSourceObject: {fileID: 4078826347819545275, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 783634053}
+    - targetCorrespondingSourceObject: {fileID: 4078826347819545275, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 783634052}
     - targetCorrespondingSourceObject: {fileID: 8090123925518967685, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1984253424}
@@ -1877,3 +2076,4 @@ SceneRoots:
   - {fileID: 1874901321}
   - {fileID: 242148683}
   - {fileID: 1201169129}
+  - {fileID: 1131380105}

@@ -46,6 +46,14 @@ namespace HandPhysics.HPTKBridge
                     ? Side.Left
                     : Side.Right;
             }
+
+            // 진단용: Start 호출 여부와 source 바인딩 성공 여부 확인
+            Debug.Log($"[HPTK-Bridge] Start on '{gameObject.name}': source={(source != null ? source.gameObject.name : "NULL")}, side={side}");
+        }
+
+        void OnEnable()
+        {
+            Debug.Log($"[HPTK-Bridge] OnEnable on '{gameObject.name}' (enabled={enabled}, activeInHier={gameObject.activeInHierarchy})");
         }
 
         void Update()
