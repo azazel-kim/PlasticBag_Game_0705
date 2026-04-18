@@ -24,6 +24,8 @@ import time
 from pathlib import Path
 from typing import Optional
 
+from .control_server import ControlServer
+from .linkband_receiver import LinkBandReceiver
 from .mock_sensors import (
     MockAccSource,
     MockEegSource,
@@ -32,6 +34,7 @@ from .mock_sensors import (
 )
 from .orchestrator import BridgeOrchestrator
 from .sensor_source import SensorSource
+from .session_logger import LoggerConfig, SessionLogger
 from .udp_protocol import UdpSender
 
 logger = logging.getLogger("main_bridge")
@@ -118,6 +121,28 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="종료 시 통계 JSON을 쓸 경로 (기본: 미저장)",
     )
     parser.add_argument(
+        "--with-linkband",
+        action="store_true",
+        help="LinkBandReceiver 활성화 (스마트폰→PC UDP 9010 수신)",
+    )
+    parser.add_argument(
+        "--linkband-port",
+        type=int,
+        default=9010,
+        help="LinkBand 수신 포트 (기본: 9010)",
+    )
+    parser.add_argument(
+        "--with-control",
+        action="store_true",
+        help="ControlServer 활성화 (9003 Handshake/Heartbeat/ClockSync)",
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help="SessionLogger 로그 디렉토리 (미지정 시 로깅 비활성)",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="DEBUG 로그 활성화",
@@ -133,15 +158,46 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
 
     sources = _build_mock_sources(mocks)
+
+    # 선택: 실제 LinkBand(스마트폰) 수신기 추가 — EEG/PPG/ACC Source 3개 제공
+    linkband: Optional[LinkBandReceiver] = None
+    if args.with_linkband:
+        linkband = LinkBandReceiver(bind_port=args.linkband_port)
+        linkband.start()
+        sources.append(linkband.eeg_source())
+        sources.append(linkband.ppg_source())
+        sources.append(linkband.acc_source())
+
     if not sources:
         logger.error("등록 가능한 소스가 없습니다 (mocks=%s)", mocks)
         return 2
+
+    # 선택: 세션 로거
+    session_logger: Optional[SessionLogger] = None
+    on_frame = None
+    if args.log_dir is not None:
+        session_logger = SessionLogger(
+            log_dir=args.log_dir,
+            config=LoggerConfig(),
+        )
+        session_logger.start(meta={"target_ip": args.target_ip,
+                                   "rate_hz": args.rate,
+                                   "mocks": sorted(mocks),
+                                   "with_linkband": bool(args.with_linkband)})
+        on_frame = session_logger.log_frame
+
+    # 선택: 제어 서버 (Handshake/Heartbeat/ClockSync)
+    control: Optional[ControlServer] = None
+    if args.with_control:
+        control = ControlServer()
+        control.start()
 
     sender = UdpSender(target_ip=args.target_ip)
     orchestrator = BridgeOrchestrator(
         sender=sender,
         fusion_rate_hz=args.rate,
         heartbeat_hz=args.heartbeat,
+        on_frame=on_frame,
     )
     for src in sources:
         orchestrator.add_source(src)
@@ -173,6 +229,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                 break
     finally:
         orchestrator.stop()
+        if linkband is not None:
+            linkband.stop()
+        if control is not None:
+            control.stop()
+        if session_logger is not None:
+            session_logger.stop()
         final_stats = orchestrator.stats
         logger.info("최종 통계: %s", final_stats)
         if args.stats_out is not None:
