@@ -21,6 +21,12 @@
       },
       "hash": "09f6dfd12276b3930095ae01f0cb32a7f9455a0b"
     },
+    "com.jorgejgnz.hptk": {
+      "version": "file:../../Hand Interaction with Physics",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.adaptiveperformance": {
       "version": "5.1.6",
       "depth": 0,
