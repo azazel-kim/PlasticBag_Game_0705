@@ -87,3 +87,11 @@ python/**/__pycache__/
 
 # OBSBOT SDK binaries (194MB, 별도 관리)
 libdev_v2.1.0_8/
+
+# Android (Android_Control/)
+Android_Control/.gradle/
+Android_Control/.idea/
+Android_Control/local.properties
+Android_Control/**/build/
+Android_Control/captures/
+Android_Control/.kotlin/
