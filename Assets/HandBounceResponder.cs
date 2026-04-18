@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections.Generic;
 
 // 손과 충돌 시 플라스틱백을 튕기고, 터치 횟수별 색상 변경 + 7회 터치 시 팝
 public class HandBounceResponder : MonoBehaviour
@@ -41,6 +42,11 @@ public class HandBounceResponder : MonoBehaviour
     private bool _isPopped = false;
     private bool _blendSwitched = false;
 
+    // "현재 봉지에 붙어있는 손 콜라이더" 집합.
+    // 손가락 19개가 동시에 붙을 수 있으므로 HashSet으로 관리.
+    // Count==0 → Count>0 전환이 "새 히트 이벤트".
+    private HashSet<GameObject> _activeHandTouches = new HashSet<GameObject>();
+
     // 점수 시스템 연동
     private int _hitCount = 0;
     public int HitCount => _hitCount;
@@ -73,77 +79,92 @@ public class HandBounceResponder : MonoBehaviour
             rb.AddForce(-Physics.gravity * gravityOffset * rb.mass, ForceMode.Force);
     }
 
-    void OnCollisionEnter(Collision collision)
+    // 손 여부 판정 (공용)
+    private bool IsHandCollider(GameObject obj, Rigidbody rbRef)
     {
-        if (_isPopped || rb == null) return;
+        if (obj == null) return false;
+        if (obj.CompareTag("PlayerHand")) return true;
+        if (rbRef != null && rbRef.gameObject.CompareTag("PlayerHand")) return true;
+        if (obj.name.Contains("Poke Interactor")) return true;
+        if (obj.name.StartsWith("HandCol_")) return true;
+        // 부모 계층에 HandColliderSetup 있으면 손 하위로 간주
+        if (obj.GetComponentInParent<HandColliderSetup>() != null) return true;
+        return false;
+    }
 
-        bool isHand = collision.gameObject.CompareTag("PlayerHand");
-        if (!isHand && collision.rigidbody != null)
-            isHand = collision.rigidbody.gameObject.CompareTag("PlayerHand");
-
-        // Poke Interactor는 연속 접촉이 많아서 별도 더 긴 쿨다운(0.5초) 적용
-        bool isPokeInteractor = collision.gameObject.name.Contains("Poke Interactor");
-        if (!isHand && isPokeInteractor)
-            isHand = true;
-
-        if (!isHand) return;
-
-        float cooldown = isPokeInteractor ? 0.5f : _cooldown;
-        if (Time.time - _lastCollisionTime < cooldown) return;
+    // 새 히트 이벤트 등록 (Count 0 → >0 전환일 때만 호출)
+    private bool TryRegisterHit()
+    {
+        if (_isPopped) return false;
+        if (Time.time - _lastCollisionTime < _cooldown) return false;
 
         _hitCount++;
         _lastCollisionTime = Time.time;
         HandleHit();
-        if (!_isPopped)
+        return !_isPopped;
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (_isPopped || rb == null) return;
+        if (!IsHandCollider(collision.gameObject, collision.rigidbody)) return;
+
+        bool wasEmpty = _activeHandTouches.Count == 0;
+        _activeHandTouches.Add(collision.gameObject);
+
+        // 이미 다른 손 콜라이더가 붙어있으면 색/사운드 히트 건너뛰기 (떨어졌다 다시 닿을 때까지)
+        if (!wasEmpty) return;
+
+        if (TryRegisterHit())
         {
-            // 팜 속도를 손 전체 대표 속도로 사용 (지터 억제). 매핑 실패 시 relativeVelocity 폴백.
             float palmSpeed = TryGetPalmSpeed(collision.gameObject);
             float handSpeed = palmSpeed >= 0f ? palmSpeed : collision.relativeVelocity.magnitude;
             ApplyBounce(collision.contacts[0].point, collision.contacts[0].normal, handSpeed, collision.gameObject.name);
         }
     }
 
+    void OnCollisionExit(Collision collision)
+    {
+        _activeHandTouches.Remove(collision.gameObject);
+    }
+
     void OnTriggerEnter(Collider other)
     {
         if (_isPopped || rb == null) return;
-        if (Time.time - _lastCollisionTime < _cooldown) return;
+        if (!IsHandCollider(other.gameObject, other.attachedRigidbody)) return;
 
-        bool isHand = other.CompareTag("PlayerHand");
-        if (!isHand && other.attachedRigidbody != null)
-            isHand = other.attachedRigidbody.gameObject.CompareTag("PlayerHand");
-        if (!isHand)
-            isHand = other.gameObject.name.Contains("Poke Interactor");
-        if (!isHand) return;
+        bool wasEmpty = _activeHandTouches.Count == 0;
+        _activeHandTouches.Add(other.gameObject);
 
-        _hitCount++;
-        _lastCollisionTime = Time.time;
-        HandleHit();
+        if (!wasEmpty) return;
 
-        if (!_isPopped)
-        {
-            Vector3 direction = (transform.position - other.transform.position).normalized;
-            if (direction.sqrMagnitude < 0.01f) direction = Vector3.up;
-            direction = (direction + Vector3.up * upwardBias).normalized;
+        if (!TryRegisterHit()) return;
 
-            // 팜 속도를 손 전체 대표 속도로 사용 (지터 억제).
-            // 손가락 tip은 XR 추적 지터로 단기 속도 스파이크(13 m/s 등) 발생 → Palm의 안정 속도로 대체.
-            float palmSpeed = TryGetPalmSpeed(other.gameObject);
-            float handSpeed = palmSpeed >= 0f
-                ? palmSpeed
-                : HandColliderSetup.GetColliderSpeed(other.gameObject.GetInstanceID());
+        Vector3 direction = (transform.position - other.transform.position).normalized;
+        if (direction.sqrMagnitude < 0.01f) direction = Vector3.up;
+        direction = (direction + Vector3.up * upwardBias).normalized;
 
-            // 손 속도 반영: 속도가 빠를수록 세게 튕김
-            float impulse = rb.mass * handSpeed * bounceRestitution;
-            impulse = Mathf.Clamp(impulse, impulseMin, impulseMax);
+        // 팜 속도를 손 전체 대표 속도로 사용 (지터 억제).
+        float palmSpeed = TryGetPalmSpeed(other.gameObject);
+        float handSpeed = palmSpeed >= 0f
+            ? palmSpeed
+            : HandColliderSetup.GetColliderSpeed(other.gameObject.GetInstanceID());
 
-            rb.linearVelocity = Vector3.zero;
-            // 위치 보정도 손 속도에 비례 (살짝 대면 거의 안 밀림, 세게 치면 밀림)
-            float pushDist = Mathf.Lerp(0.005f, 0.03f, Mathf.Clamp01(handSpeed / 3f));
-            transform.position += direction * pushDist;
-            rb.AddForce(direction * impulse, ForceMode.Impulse);
+        // 손 속도 반영: 속도가 빠를수록 세게 튕김
+        float impulse = rb.mass * handSpeed * bounceRestitution;
+        impulse = Mathf.Clamp(impulse, impulseMin, impulseMax);
 
-            Debug.Log($"[Bounce] hand={other.name}, palmSpeed={handSpeed:F2}, impulse={impulse:F4}, push={pushDist:F3}");
-        }
+        rb.linearVelocity = Vector3.zero;
+        float pushDist = Mathf.Lerp(0.005f, 0.03f, Mathf.Clamp01(handSpeed / 3f));
+        transform.position += direction * pushDist;
+        rb.AddForce(direction * impulse, ForceMode.Impulse);
+
+        Debug.Log($"[Bounce] hand={other.name}, palmSpeed={handSpeed:F2}, impulse={impulse:F4}, push={pushDist:F3}");
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        _activeHandTouches.Remove(other.gameObject);
     }
 
     // 충돌한 콜라이더로부터 "그 손의 Palm 속도"를 추출합니다.

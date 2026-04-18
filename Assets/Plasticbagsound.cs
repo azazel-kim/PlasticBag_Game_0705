@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Plasticbagsound : MonoBehaviour
 {
@@ -37,6 +38,20 @@ public class Plasticbagsound : MonoBehaviour
     private float lastPlayTime = -1f;
     private float soundCooldown = 0.15f;
 
+    // 손 접촉 중복 방지용 HashSet (HandBounceResponder와 동일 패턴).
+    // 여러 손가락 콜라이더가 동시에 닿아도 첫 진입에만 사운드 재생.
+    private HashSet<GameObject> _activeHandTouches = new HashSet<GameObject>();
+
+    private bool IsHandObj(GameObject obj)
+    {
+        if (obj == null) return false;
+        if (obj.CompareTag("PlayerHand")) return true;
+        if (obj.name.Contains("Poke Interactor")) return true;
+        if (obj.name.StartsWith("HandCol_")) return true;
+        if (obj.GetComponentInParent<HandColliderSetup>() != null) return true;
+        return false;
+    }
+
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
@@ -51,10 +66,18 @@ public class Plasticbagsound : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         if (audioSource == null) return;
+
+        bool isHand = IsHandObj(collision.gameObject);
+        if (isHand)
+        {
+            bool wasEmpty = _activeHandTouches.Count == 0;
+            _activeHandTouches.Add(collision.gameObject);
+            // 이미 다른 손 콜라이더 붙어있으면 소리 스킵
+            if (!wasEmpty) return;
+        }
+
         if (Time.time - lastPlayTime < soundCooldown) return;
 
-        // 손 충돌이면 팜 속도를 사용 (손 전체 대표 속도 — 지터 억제, 속도↔강도 판정 명확화).
-        // 팜 매핑 실패(Ground, XR Origin 등)는 기존 relativeVelocity로 폴백.
         float palmSpeed = HandBounceResponder.TryGetPalmSpeed(collision.gameObject);
         float impactForce = palmSpeed >= 0f ? palmSpeed : collision.relativeVelocity.magnitude;
         string source = palmSpeed >= 0f ? $"{collision.gameObject.name}(palm)" : collision.gameObject.name;
@@ -63,12 +86,25 @@ public class Plasticbagsound : MonoBehaviour
         PlaySoundByForce(impactForce);
     }
 
+    private void OnCollisionExit(Collision collision)
+    {
+        _activeHandTouches.Remove(collision.gameObject);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (audioSource == null) return;
+
+        bool isHand = IsHandObj(other.gameObject);
+        if (isHand)
+        {
+            bool wasEmpty = _activeHandTouches.Count == 0;
+            _activeHandTouches.Add(other.gameObject);
+            if (!wasEmpty) return;
+        }
+
         if (Time.time - lastPlayTime < soundCooldown) return;
 
-        // Trigger는 HandCol_* 계열이 주로 들어옴 → 팜 속도 우선 사용
         float palmSpeed = HandBounceResponder.TryGetPalmSpeed(other.gameObject);
         float impactForce;
         string source;
@@ -79,7 +115,6 @@ public class Plasticbagsound : MonoBehaviour
         }
         else
         {
-            // 매핑 실패 시 기존처럼 봉지 Rigidbody 속도로 추정
             impactForce = 0f;
             var rb = GetComponent<Rigidbody>();
             if (rb != null) impactForce = rb.linearVelocity.magnitude;
@@ -88,6 +123,11 @@ public class Plasticbagsound : MonoBehaviour
 
         Debug.Log($"[PlasticBagSound] OnTriggerEnter: {source}, force={impactForce:F2}");
         PlaySoundByForce(impactForce);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        _activeHandTouches.Remove(other.gameObject);
     }
 
     private void PlaySoundByForce(float impactForce)

@@ -43,6 +43,14 @@ public class ScoreManager : MonoBehaviour
         Debug.Log($"[Score] +{points}점 (x{multiplier}) = 총 {_totalScore}점");
     }
 
+    // 범용 점수 추가 (공을 상자에 넣을 때 등)
+    public void AddScore(int points, string source = "")
+    {
+        _totalScore += points;
+        UpdateUI();
+        Debug.Log($"[Score] +{points}점 ({source}) = 총 {_totalScore}점");
+    }
+
     private void UpdateUI()
     {
         if (scoreText != null)

@@ -3,9 +3,15 @@ using UnityEngine.XR.Hands;
 using System.Collections.Generic;
 
 /// <summary>
-/// 손의 여러 관절(손바닥, 손가락 끝)에 SphereCollider를 배치하여
-/// 플라스틱백과의 충돌 감지를 안정적으로 만듭니다.
-/// 기존 Poke Interactor(검지 끝)에 더해 중지, 약지, 엄지, 손바닥까지 충돌 가능.
+/// 손의 19개 관절(HPTK 호환 범위)에 Trigger + Physics 콜라이더 두 세트를 배치합니다.
+///
+/// 하이브리드 구조:
+///  - Trigger SphereCollider  (isTrigger=true)
+///      → 기존 OnTriggerEnter 기반 Bounce/Sound 로직용 (HandBounceResponder, Plasticbagsound)
+///  - Physics SphereCollider  (isTrigger=false)
+///      → 봉지·벽을 실제로 밀어내 관통 방지 (XRIT 패턴 참고, Kinematic Rigidbody + MovePosition)
+///  - Kinematic Rigidbody 1개 (공용)
+///      → FixedUpdate에서 rb.MovePosition/MoveRotation으로 물리 반영
 ///
 /// XR Origin > Camera Offset > Left Hand / Right Hand에 붙여주세요.
 /// </summary>
@@ -15,26 +21,68 @@ public class HandColliderSetup : MonoBehaviour
     [Tooltip("왼손이면 Left, 오른손이면 Right")]
     public Handedness handedness = Handedness.Left;
 
-    [Tooltip("각 관절 Collider의 반지름 (미터)")]
-    public float colliderRadius = 0.025f;
+    [Header("Trigger 콜라이더 (터치 감지)")]
+    [Tooltip("일반 관절 Trigger 반지름 (m) — 터치 감지용")]
+    public float triggerRadius = 0.012f;
 
-    [Tooltip("손바닥 Collider의 반지름 (미터)")]
-    public float palmColliderRadius = 0.05f;
+    [Tooltip("Palm/Wrist Trigger 반지름 (m) — 손바닥은 크게")]
+    public float palmTriggerRadius = 0.035f;
 
-    // 추적할 관절 목록
+    [Header("Physics 콜라이더 (봉지 밀어냄)")]
+    [Tooltip("물리 레이어를 활성화할지. false이면 기존 Trigger만 동작")]
+    public bool enablePhysicsColliders = true;
+
+    [Tooltip("일반 관절 Physics 반지름 (m) — Trigger보다 작게 해서 Trigger 먼저 발동")]
+    public float physicsRadius = 0.009f;
+
+    [Tooltip("Palm/Wrist Physics 반지름 (m)")]
+    public float palmPhysicsRadius = 0.03f;
+
+    // HPTK 호환 19-bone 중 실제 XR Hand에 존재하는 관절 19개 (synthesized forearm 제외).
+    // 각 관절에서 Trigger + Physics 콜라이더 쌍을 생성합니다.
     private static readonly XRHandJointID[] TrackedJoints = new[]
     {
-        XRHandJointID.MiddleTip,    // 중지 끝
-        XRHandJointID.RingTip,      // 약지 끝
-        XRHandJointID.ThumbTip,     // 엄지 끝
-        XRHandJointID.Palm,         // 손바닥 중심
+        // 루트
+        XRHandJointID.Wrist,
+        XRHandJointID.Palm,
+
+        // Thumb 4개
+        XRHandJointID.ThumbMetacarpal,
+        XRHandJointID.ThumbProximal,
+        XRHandJointID.ThumbDistal,
+        XRHandJointID.ThumbTip,
+
+        // Index 4개 (Proximal/Intermediate/Distal/Tip)
+        XRHandJointID.IndexProximal,
+        XRHandJointID.IndexIntermediate,
+        XRHandJointID.IndexDistal,
+        XRHandJointID.IndexTip,
+
+        // Middle 4개
+        XRHandJointID.MiddleProximal,
+        XRHandJointID.MiddleIntermediate,
+        XRHandJointID.MiddleDistal,
+        XRHandJointID.MiddleTip,
+
+        // Ring 4개
+        XRHandJointID.RingProximal,
+        XRHandJointID.RingIntermediate,
+        XRHandJointID.RingDistal,
+        XRHandJointID.RingTip,
+
+        // Little(pinky) 4개 — 원래 HPTK는 Metacarpal 포함하지만 Tip이 게임플레이에 더 중요
+        XRHandJointID.LittleProximal,
+        XRHandJointID.LittleIntermediate,
+        XRHandJointID.LittleDistal,
+        XRHandJointID.LittleTip,
     };
 
     private XRHandSubsystem _handSubsystem;
     private Dictionary<XRHandJointID, GameObject> _colliderObjects = new Dictionary<XRHandJointID, GameObject>();
+    private Dictionary<XRHandJointID, Rigidbody> _colliderRigidbodies = new Dictionary<XRHandJointID, Rigidbody>();
     private bool _initialized = false;
 
-    // 매 프레임 각 콜라이더의 속도를 추적 (HandBounceResponder에서 참조)
+    // 매 프레임 각 콜라이더의 속도를 추적 (HandBounceResponder / Plasticbagsound에서 참조)
     private static Dictionary<int, float> _colliderSpeeds = new Dictionary<int, float>();
     private Dictionary<XRHandJointID, Vector3> _prevPositions = new Dictionary<XRHandJointID, Vector3>();
 
@@ -66,28 +114,47 @@ public class HandColliderSetup : MonoBehaviour
 
         _handSubsystem = subsystems[0];
 
-        // 각 관절에 Collider 오브젝트 생성
+        // 각 관절에 Collider 오브젝트 생성 (Trigger + Physics 두 세트)
         foreach (var jointId in TrackedJoints)
         {
+            bool isPalmOrWrist = jointId == XRHandJointID.Palm || jointId == XRHandJointID.Wrist;
+
             var obj = new GameObject($"HandCol_{handedness}_{jointId}");
             obj.transform.SetParent(transform);
             obj.tag = "PlayerHand"; // HandBounceResponder가 감지하는 태그
 
-            var col = obj.AddComponent<SphereCollider>();
-            col.radius = (jointId == XRHandJointID.Palm) ? palmColliderRadius : colliderRadius;
-            col.isTrigger = true; // Trigger로 설정 — OnTriggerEnter 감지
+            // ─── Trigger SphereCollider (터치 감지용) ───
+            var trigCol = obj.AddComponent<SphereCollider>();
+            trigCol.radius = isPalmOrWrist ? palmTriggerRadius : triggerRadius;
+            trigCol.isTrigger = true;
 
+            // ─── Physics SphereCollider (봉지 밀어냄용) ───
+            if (enablePhysicsColliders)
+            {
+                var physCol = obj.AddComponent<SphereCollider>();
+                physCol.radius = isPalmOrWrist ? palmPhysicsRadius : physicsRadius;
+                physCol.isTrigger = false;
+            }
+
+            // ─── Kinematic Rigidbody (공용) ───
             var rb = obj.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.useGravity = false;
+            // Interpolation: FixedUpdate보다 Update에서 더 부드럽게 보임
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            // Kinematic rigidbody는 ContinuousSpeculative가 적합 (봉지 같은 dynamic rigidbody와 정확한 충돌)
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
             _colliderObjects[jointId] = obj;
+            _colliderRigidbodies[jointId] = rb;
         }
 
         _initialized = true;
-        Debug.Log($"[HandCollider] {handedness} 초기화 완료. {_colliderObjects.Count}개 관절 Collider 생성.");
+        int physCount = enablePhysicsColliders ? _colliderObjects.Count : 0;
+        Debug.Log($"[HandCollider] {handedness} 초기화 완료. Trigger {_colliderObjects.Count}개 + Physics {physCount}개.");
     }
 
+    // 매 프레임 Update: 위치 데이터 수집 + 속도 계산 (물리 이동은 FixedUpdate에서).
     void Update()
     {
         if (!_initialized || _handSubsystem == null || !_handSubsystem.running) return;
@@ -98,14 +165,13 @@ public class HandColliderSetup : MonoBehaviour
 
         if (!hand.isTracked) return;
 
-        // 각 관절 위치에 Collider 오브젝트 이동 + 속도 계산
         float dt = Time.deltaTime;
         foreach (var kvp in _colliderObjects)
         {
             var joint = hand.GetJoint(kvp.Key);
             if (joint.TryGetPose(out Pose pose))
             {
-                // 매 프레임 속도 계산
+                // 속도 계산
                 int id = kvp.Value.GetInstanceID();
                 if (_prevPositions.TryGetValue(kvp.Key, out Vector3 prevPos) && dt > 0.0001f)
                 {
@@ -114,13 +180,34 @@ public class HandColliderSetup : MonoBehaviour
                 }
                 _prevPositions[kvp.Key] = pose.position;
 
-                kvp.Value.transform.position = pose.position;
-                kvp.Value.transform.rotation = pose.rotation;
                 kvp.Value.SetActive(true);
             }
             else
             {
                 kvp.Value.SetActive(false);
+            }
+        }
+    }
+
+    // FixedUpdate: Kinematic Rigidbody.MovePosition/MoveRotation으로 물리 밀어냄 유도.
+    // (transform.position 직접 대입은 physics 영향 없음. MovePosition이 핵심)
+    void FixedUpdate()
+    {
+        if (!_initialized || _handSubsystem == null || !_handSubsystem.running) return;
+
+        XRHand hand = (handedness == Handedness.Left)
+            ? _handSubsystem.leftHand
+            : _handSubsystem.rightHand;
+
+        if (!hand.isTracked) return;
+
+        foreach (var kvp in _colliderRigidbodies)
+        {
+            var joint = hand.GetJoint(kvp.Key);
+            if (joint.TryGetPose(out Pose pose) && kvp.Value != null)
+            {
+                kvp.Value.MovePosition(pose.position);
+                kvp.Value.MoveRotation(pose.rotation);
             }
         }
     }
@@ -132,5 +219,6 @@ public class HandColliderSetup : MonoBehaviour
             if (obj != null) Destroy(obj);
         }
         _colliderObjects.Clear();
+        _colliderRigidbodies.Clear();
     }
 }

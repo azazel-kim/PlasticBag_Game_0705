@@ -16,8 +16,8 @@ MonoBehaviour:
   description: "\uBD80\uB4DC\uB7FD\uAC8C \uB465\uC2E4 (\uD604\uC7AC \uAE30\uBCF8\uAC12)"
   bounceRestitution: 1.414
   impulseMin: 0.002089
-  impulseMax: 1.2
-  upwardBias: 0.515
+  impulseMax: 0.24
+  upwardBias: 0.2575
   gravityOffset: 0.42
   gravityY: -0.98
   linearDrag: 0.5
