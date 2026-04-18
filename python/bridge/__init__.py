@@ -37,6 +37,14 @@ from .udp_protocol import (
 from .fusion_pipeline import FusionPipeline, PipelineStats
 from .mediapipe_bridge import MediaPipeBridge, MediaPipeConfig
 from .xsens_bridge import XSensBridge, XSensConfig, XSensMode
+from .sensor_source import SensorSource
+from .mock_sensors import (
+    MockAccSource,
+    MockEegSource,
+    MockImuSource,
+    MockPpgSource,
+)
+from .orchestrator import BridgeOrchestrator, OrchestratorStats
 
 __version__ = "0.1.0"
 
@@ -74,4 +82,13 @@ __all__ = [
     "XSensBridge",
     "XSensConfig",
     "XSensMode",
+    # 센서 소스 추상화 + Mock
+    "SensorSource",
+    "MockEegSource",
+    "MockPpgSource",
+    "MockAccSource",
+    "MockImuSource",
+    # Orchestrator (Sender)
+    "BridgeOrchestrator",
+    "OrchestratorStats",
 ]
