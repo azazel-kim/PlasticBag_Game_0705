@@ -967,7 +967,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trackedCamera: {fileID: 1984253420}
   trackingSpace: {fileID: 989551464}
-  defaultConfAssets: []
+  defaultConfAssets:
+  - {fileID: 11400000, guid: 7810dab8672f9af418e4dd0f31e12d32, type: 2}
+  - {fileID: 11400000, guid: db52b1e9f5d7dce458a25aadc0764730, type: 2}
+  - {fileID: 11400000, guid: 930a90c6771d2d241845c329e4a1b627, type: 2}
   leftEditorIdp: {fileID: 118099179}
   leftBuildIdp: {fileID: 118099179}
   rightEditorIdp: {fileID: 783634052}
@@ -1312,6 +1315,63 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &1531449184
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527894, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7301345196614527897, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: m_Name
+      value: HPTK Avatar (URP)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: abb0e9c698585734d997ac75408b811f, type: 3}
 --- !u!21 &1598362108
 Material:
   serializedVersion: 8
@@ -2077,3 +2137,4 @@ SceneRoots:
   - {fileID: 242148683}
   - {fileID: 1201169129}
   - {fileID: 1131380105}
+  - {fileID: 1531449184}
