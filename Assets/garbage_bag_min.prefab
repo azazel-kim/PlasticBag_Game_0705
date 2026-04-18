@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: -2887005749957630806}
   - component: {fileID: 6636706819823008785}
   - component: {fileID: 2551674178049119317}
-  - component: {fileID: 770085908062282323}
+  - component: {fileID: 4377893247571729050}
   m_Layer: 7
   m_Name: garbage_bag_min
   m_TagString: Plasticbag
@@ -120,7 +120,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 0
-  m_CollisionDetection: 1
+  m_CollisionDetection: 3
 --- !u!75 &1870992206252639508
 ConstantForce:
   m_ObjectHideFlags: 0
@@ -148,9 +148,11 @@ MonoBehaviour:
   lightTouchSound: {fileID: 8300000, guid: 2430e9d3581e1184b83608187a17ed2e, type: 3}
   mediumImpactSound: {fileID: 8300000, guid: 61d57a36288296e49a879bc4eacb64ed, type: 3}
   strongImpactSound: {fileID: 8300000, guid: 234a68e1968cf544898f716121c22e52, type: 3}
-  mediumImpactThreshold: 1
+  mediumImpactThreshold: 0.4
   strongImpactThreshold: 1.5
-  volumeMultiplier: 3
+  lightVolume: 2
+  mediumVolume: 1
+  strongVolume: 2.7
 --- !u!114 &-932437751212796987
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -285,12 +287,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd06e0bc354ea4fd9a0e31692df8ebdc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bounceForce: 2
-  velocitySensitivity: 5
-  maxBounceForce: 0
-  bagAlpha: 0.4
+  bounceRestitution: 3.9
+  impulseMin: 0.012
+  impulseMax: 0.4
+  upwardBias: 0.35
+  gravityOffset: 0.32
+  bagAlpha: 0.7
   maxHits: 7
---- !u!135 &770085908062282323
+--- !u!135 &4377893247571729050
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -309,5 +313,5 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.0015
-  m_Center: {x: 0.00008345395, y: 0.0023211313, z: 0.000011458644}
+  m_Radius: 0.001091
+  m_Center: {x: 0.000083453946, y: 0.002321131, z: 0.000011458183}

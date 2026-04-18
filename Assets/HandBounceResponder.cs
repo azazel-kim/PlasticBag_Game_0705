@@ -4,19 +4,31 @@ using TMPro;
 // 손과 충돌 시 플라스틱백을 튕기고, 터치 횟수별 색상 변경 + 7회 터치 시 팝
 public class HandBounceResponder : MonoBehaviour
 {
-    [Tooltip("기본 튕김 힘")]
-    public float bounceForce = 0f;
+    [Header("튕김 튜닝")]
+    [Range(1f, 10f)]
+    [Tooltip("손 속도 → 튕김 힘 배수 (클수록 세게 튕김)")]
+    public float bounceRestitution = 3.9f;
 
-    [Tooltip("손 속도에 대한 민감도 배수")]
-    public float velocitySensitivity = 0f;
+    [Range(0.001f, 0.1f)]
+    [Tooltip("튕김 힘 최소값 (살짝 스쳐도 최소 이만큼)")]
+    public float impulseMin = 0.012f;
 
-    [Tooltip("최대 튕김 힘 (시야 밖으로 나가지 않도록 제한)")]
-    public float maxBounceForce = 0f;
+    [Range(0.1f, 2f)]
+    [Tooltip("튕김 힘 최대값 (너무 멀리 날아가지 않도록 제한)")]
+    public float impulseMax = 0.4f;
+
+    [Range(0f, 1f)]
+    [Tooltip("튕김 방향의 위쪽 가중치 (0=직선반사, 1=완전수직)")]
+    public float upwardBias = 0.35f;
+
+    [Range(0f, 1f)]
+    [Tooltip("중력 상쇄 비율 (0=전역중력 그대로, 0.32=32% 부양 ≈ 낙하속도 20% 감속)")]
+    public float gravityOffset = 0.32f;
 
     [Header("비닐봉지 투명도")]
     [Range(0f, 1f)]
     [Tooltip("비닐봉지의 기본 투명도 (0=완전투명, 1=불투명)")]
-    public float bagAlpha = 0.4f;
+    public float bagAlpha = 0.7f;
 
     [Header("터치별 색상 (7단계)")]
     [Tooltip("7회 터치 시 봉지가 터짐")]
@@ -55,26 +67,40 @@ public class HandBounceResponder : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 추가 중력 -15% (기본 중력보다 가벼움 → 둥실 뜨는 느낌)
+        // 중력 상쇄: gravityOffset만큼 전역 중력을 상쇄하여 둥실 뜨는 느낌 부여
+        // 0 = 전역 중력 그대로 적용, 0.15 = 중력의 15%를 상쇄, 1.0 = 완전 무중력
         if (rb != null && !_isPopped)
-            rb.AddForce(-Physics.gravity * 0.15f * rb.mass, ForceMode.Force);
+            rb.AddForce(-Physics.gravity * gravityOffset * rb.mass, ForceMode.Force);
     }
 
     void OnCollisionEnter(Collision collision)
     {
         if (_isPopped || rb == null) return;
-        if (Time.time - _lastCollisionTime < _cooldown) return;
 
         bool isHand = collision.gameObject.CompareTag("PlayerHand");
         if (!isHand && collision.rigidbody != null)
             isHand = collision.rigidbody.gameObject.CompareTag("PlayerHand");
+
+        // Poke Interactor는 연속 접촉이 많아서 별도 더 긴 쿨다운(0.5초) 적용
+        bool isPokeInteractor = collision.gameObject.name.Contains("Poke Interactor");
+        if (!isHand && isPokeInteractor)
+            isHand = true;
+
         if (!isHand) return;
+
+        float cooldown = isPokeInteractor ? 0.5f : _cooldown;
+        if (Time.time - _lastCollisionTime < cooldown) return;
 
         _hitCount++;
         _lastCollisionTime = Time.time;
         HandleHit();
         if (!_isPopped)
-            ApplyBounce(collision.contacts[0].point, collision.contacts[0].normal, collision.relativeVelocity);
+        {
+            // 팜 속도를 손 전체 대표 속도로 사용 (지터 억제). 매핑 실패 시 relativeVelocity 폴백.
+            float palmSpeed = TryGetPalmSpeed(collision.gameObject);
+            float handSpeed = palmSpeed >= 0f ? palmSpeed : collision.relativeVelocity.magnitude;
+            ApplyBounce(collision.contacts[0].point, collision.contacts[0].normal, handSpeed, collision.gameObject.name);
+        }
     }
 
     void OnTriggerEnter(Collider other)
@@ -85,6 +111,8 @@ public class HandBounceResponder : MonoBehaviour
         bool isHand = other.CompareTag("PlayerHand");
         if (!isHand && other.attachedRigidbody != null)
             isHand = other.attachedRigidbody.gameObject.CompareTag("PlayerHand");
+        if (!isHand)
+            isHand = other.gameObject.name.Contains("Poke Interactor");
         if (!isHand) return;
 
         _hitCount++;
@@ -95,11 +123,63 @@ public class HandBounceResponder : MonoBehaviour
         {
             Vector3 direction = (transform.position - other.transform.position).normalized;
             if (direction.sqrMagnitude < 0.01f) direction = Vector3.up;
-            direction = (direction + Vector3.up * 0.35f).normalized;
+            direction = (direction + Vector3.up * upwardBias).normalized;
 
-            float impulse = Mathf.Clamp(rb.mass * 3.9f, 0.012f, 0.4f);
+            // 팜 속도를 손 전체 대표 속도로 사용 (지터 억제).
+            // 손가락 tip은 XR 추적 지터로 단기 속도 스파이크(13 m/s 등) 발생 → Palm의 안정 속도로 대체.
+            float palmSpeed = TryGetPalmSpeed(other.gameObject);
+            float handSpeed = palmSpeed >= 0f
+                ? palmSpeed
+                : HandColliderSetup.GetColliderSpeed(other.gameObject.GetInstanceID());
+
+            // 손 속도 반영: 속도가 빠를수록 세게 튕김
+            float impulse = rb.mass * handSpeed * bounceRestitution;
+            impulse = Mathf.Clamp(impulse, impulseMin, impulseMax);
+
+            rb.linearVelocity = Vector3.zero;
+            // 위치 보정도 손 속도에 비례 (살짝 대면 거의 안 밀림, 세게 치면 밀림)
+            float pushDist = Mathf.Lerp(0.005f, 0.03f, Mathf.Clamp01(handSpeed / 3f));
+            transform.position += direction * pushDist;
             rb.AddForce(direction * impulse, ForceMode.Impulse);
+
+            Debug.Log($"[Bounce] hand={other.name}, palmSpeed={handSpeed:F2}, impulse={impulse:F4}, push={pushDist:F3}");
         }
+    }
+
+    // 충돌한 콜라이더로부터 "그 손의 Palm 속도"를 추출합니다.
+    // 반환값이 음수면 매핑 실패 (HandColliderSetup 관리 외 오브젝트) → 호출자가 폴백 처리.
+    // Palm을 손 전체 대표 속도로 쓰는 이유:
+    //   - 손가락 tip은 XR 추적 지터로 단기 속도 스파이크 발생
+    //   - Palm은 손 중심이라 상대적으로 안정적
+    //   - "손을 얼마나 빠르게 휘둘렀냐"라는 물리적 직관과 일치
+    public static float TryGetPalmSpeed(GameObject colliderObj)
+    {
+        if (colliderObj == null) return -1f;
+
+        // Case 1: 이름이 "HandCol_Left_*" / "HandCol_Right_*" → 형제 Palm 콜라이더 탐색
+        if (colliderObj.name.StartsWith("HandCol_"))
+        {
+            int firstUs = colliderObj.name.IndexOf('_');
+            int secondUs = colliderObj.name.IndexOf('_', firstUs + 1);
+            if (firstUs >= 0 && secondUs > firstUs && colliderObj.transform.parent != null)
+            {
+                string handPart = colliderObj.name.Substring(firstUs + 1, secondUs - firstUs - 1);
+                Transform palm = colliderObj.transform.parent.Find($"HandCol_{handPart}_Palm");
+                if (palm != null)
+                    return HandColliderSetup.GetColliderSpeed(palm.gameObject.GetInstanceID());
+            }
+        }
+
+        // Case 2: 부모 계층에 HandColliderSetup 있음 (Poke Interactor 등 XR Hand 자식)
+        var setup = colliderObj.GetComponentInParent<HandColliderSetup>();
+        if (setup != null)
+        {
+            Transform palm = setup.transform.Find($"HandCol_{setup.handedness}_Palm");
+            if (palm != null)
+                return HandColliderSetup.GetColliderSpeed(palm.gameObject.GetInstanceID());
+        }
+
+        return -1f;
     }
 
     private void HandleHit()
@@ -276,19 +356,21 @@ public class HandBounceResponder : MonoBehaviour
     }
 
     // 비닐봉지 바운스: 둥실둥실 가볍게 튕기는 느낌
-    private void ApplyBounce(Vector3 contactPoint, Vector3 contactNormal, Vector3 relativeVelocity)
+    // handSpeed: 팜(또는 폴백) 속도 m/s — 호출자가 매핑해서 전달.
+    private void ApplyBounce(Vector3 contactPoint, Vector3 contactNormal, float handSpeed, string sourceName)
     {
         Vector3 direction = (transform.position - contactPoint).normalized;
         if (direction.sqrMagnitude < 0.01f) direction = contactNormal;
 
-        // 위쪽 35% 가중 — 둥실 위로 뜨는 느낌
-        direction = (direction + Vector3.up * 0.35f).normalized;
+        // upwardBias: 위쪽 가중치 — 둥실 위로 뜨는 방향 보정
+        direction = (direction + Vector3.up * upwardBias).normalized;
 
-        float handSpeed = relativeVelocity.magnitude;
-        float restitution = 3.9f; // 3.0 * 1.3 = 30% 강화
-        float impulse = rb.mass * handSpeed * restitution;
-        impulse = Mathf.Clamp(impulse, 0.012f, 0.4f);
+        // bounceRestitution: 손 속도 × 질량 × 반발계수 = 최종 튕김 힘
+        float impulse = rb.mass * handSpeed * bounceRestitution;
+        impulse = Mathf.Clamp(impulse, impulseMin, impulseMax);
 
         rb.AddForce(direction * impulse, ForceMode.Impulse);
+
+        Debug.Log($"[Bounce] hand={sourceName}, palmSpeed={handSpeed:F2}, impulse={impulse:F4} (collision-path)");
     }
 }

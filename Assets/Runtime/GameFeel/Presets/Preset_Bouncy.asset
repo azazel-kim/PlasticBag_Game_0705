@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de1f2f07b65244db4ab49270772ba358, type: 3}
+  m_Name: Preset_Bouncy
+  m_EditorClassIdentifier: 
+  displayName: Bouncy
+  description: "\uACBD\uCF8C\uD558\uAC8C \uD0F1\uD0F1 \uD280\uB294 \uACF5"
+  bounceRestitution: 6
+  impulseMin: 0.02
+  impulseMax: 0.8
+  upwardBias: 0.2
+  gravityOffset: 0.1
+  gravityY: -0.5
+  linearDrag: 0.3
+  mass: 0.08
+  mediumImpactThreshold: 0.5
+  strongImpactThreshold: 3
+  volumeMultiplier: 4

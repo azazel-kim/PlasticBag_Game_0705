@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de1f2f07b65244db4ab49270772ba358, type: 3}
+  m_Name: Preset_Gentle
+  m_EditorClassIdentifier: 
+  displayName: Gentle
+  description: "\uBD80\uB4DC\uB7FD\uAC8C \uB465\uC2E4 (\uD604\uC7AC \uAE30\uBCF8\uAC12)"
+  bounceRestitution: 1.414
+  impulseMin: 0.002089
+  impulseMax: 1.2
+  upwardBias: 0.515
+  gravityOffset: 0.42
+  gravityY: -0.98
+  linearDrag: 0.5
+  mass: 0.097
+  mediumImpactThreshold: 0.69
+  strongImpactThreshold: 1.04
+  volumeMultiplier: 2.77
