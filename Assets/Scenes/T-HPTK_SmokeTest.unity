@@ -1367,6 +1367,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: HPTK Avatar (URP)
       objectReference: {fileID: 0}
+    - target: {fileID: 7301345197268625583, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: inputDataProvider
+      value: 
+      objectReference: {fileID: 118099179}
+    - target: {fileID: 7301345197555213517, guid: abb0e9c698585734d997ac75408b811f, type: 3}
+      propertyPath: inputDataProvider
+      value: 
+      objectReference: {fileID: 783634052}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
