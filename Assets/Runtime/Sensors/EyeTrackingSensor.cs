@@ -122,7 +122,8 @@ namespace XRExergame.Sensors
 
         private void Start()
         {
-            RequestEyeTrackingPermission();
+            // 퍼미션은 HandTrackingPermissionRequester가 순차적으로 처리함
+            // (동시 요청 시 두 번째 다이얼로그가 무시되는 문제 방지)
 
             // InputAction 활성화
             _gazePositionAction.Enable();

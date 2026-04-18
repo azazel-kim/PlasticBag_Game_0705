@@ -39,6 +39,12 @@ public class EyeGazeRaycaster : MonoBehaviour
     private Vector3 _lastValidPos;
     private Quaternion _lastValidRot = Quaternion.identity;
 
+    /// <summary>
+    /// 마지막 Physics.Raycast hit 결과. 외부에서 시선이 어떤 Collider에 맞았는지 확인용.
+    /// hit가 없으면 null.
+    /// </summary>
+    public Collider LastHitCollider { get; private set; }
+
     void Start()
     {
         gazeLineRenderer = GetComponent<LineRenderer>();
@@ -50,8 +56,8 @@ public class EyeGazeRaycaster : MonoBehaviour
             return;
         }
 
-        // Eye Tracking 퍼미션 요청
-        RequestEyeTrackingPermission();
+        // Eye Tracking 퍼미션은 HandTrackingPermissionRequester가 순차적으로 처리함
+        // (중복 요청 시 Android가 자동 거부하므로 여기서는 요청하지 않음)
 
         // OpenXR Eye Gaze Input Actions 설정
         _eyeGazePositionAction = new InputAction("EyeGazePosition", binding: "<EyeGaze>/pose/position");
@@ -231,12 +237,15 @@ public class EyeGazeRaycaster : MonoBehaviour
         // Line Renderer 시작점
         gazeLineRenderer.SetPosition(0, gazeRay.origin);
 
-        if (Physics.Raycast(gazeRay, out RaycastHit hit, maxGazeDistance))
+        // QueryTriggerInteraction.Collide: Trigger Collider도 감지 (패널 버튼용)
+        if (Physics.Raycast(gazeRay, out RaycastHit hit, maxGazeDistance,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
         {
             gazePointer.SetActive(true);
             gazePointer.transform.position = hit.point;
             gazeLineRenderer.SetPosition(1, hit.point);
             targetRenderer.material = onHitMaterial;
+            LastHitCollider = hit.collider;
         }
         else
         {
@@ -244,6 +253,7 @@ public class EyeGazeRaycaster : MonoBehaviour
             gazePointer.transform.position = gazeRay.origin + gazeRay.direction * maxGazeDistance;
             gazeLineRenderer.SetPosition(1, gazeRay.origin + gazeRay.direction * maxGazeDistance);
             targetRenderer.material = offHitMaterial;
+            LastHitCollider = null;
         }
     }
 }

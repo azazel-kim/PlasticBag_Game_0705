@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using System.IO;
 using System;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 public class BuildSamsungXR
@@ -13,8 +14,20 @@ public class BuildSamsungXR
         string buildDir = Path.Combine(projectPath, "Builds");
         Directory.CreateDirectory(buildDir);
 
-        string buildTime = System.DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string apkPath = Path.Combine(buildDir, $"PlasticBagGame_SamsungXR_1.2.2_{buildTime}.apk");
+        // productName에서 숫자 접두사를 +1 증가
+        // 예: "1-HandPhysicsRTest" → "2-HandPhysicsRTest"
+        string productName = PlayerSettings.productName;
+        var match = Regex.Match(productName, @"^(\d+)(-.+)$");
+        if (match.Success)
+        {
+            int num = int.Parse(match.Groups[1].Value) + 1;
+            string newName = $"{num}{match.Groups[2].Value}";
+            PlayerSettings.productName = newName;
+            productName = newName;
+            Debug.Log($"[Build] 앱 이름 자동 증가: {match.Value} → {newName}");
+        }
+
+        string apkPath = Path.Combine(projectPath, $"{productName}.apk");
 
         // 빌드 설정
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
@@ -51,6 +64,7 @@ public class BuildSamsungXR
             {
                 FileInfo fileInfo = new FileInfo(apkPath);
                 Debug.Log($"파일 크기: {(fileInfo.Length / 1024f / 1024f):F2} MB");
+                Debug.Log($"APK 파일명: {Path.GetFileName(apkPath)}");
             }
         }
         else

@@ -12,7 +12,7 @@ using System.Linq;
 public static class SamsungXRBuilder
 {
     private const string BuildFolder = "Builds";
-    private const string AppName = "PlasticBagGame_SamsungXR";
+    private static string AppName => PlayerSettings.productName;
 
     [MenuItem("Build/Samsung XR - Development APK")]
     public static void BuildDevelopment()
