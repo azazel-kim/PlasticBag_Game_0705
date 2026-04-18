@@ -84,3 +84,6 @@ BUILD_DEPLOYMENT_REPORT.md
 # Claude Code session logs (private, not for version control)
 .claude/projects/
 python/**/__pycache__/
+
+# OBSBOT SDK binaries (194MB, 별도 관리)
+libdev_v2.1.0_8/
