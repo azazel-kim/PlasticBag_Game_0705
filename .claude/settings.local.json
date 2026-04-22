@@ -23,7 +23,10 @@
       "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb -s R3KYB032YLY install /Users/user/Projects/Unity/PlasticBag_Game_0705/samsungXR_Exergame10.apk)",
       "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb -s R3KYB032YLY shell monkey -p com.DXPLap.XRExergamePlasticBagGame27 -c android.intent.category.LAUNCHER 1)",
       "Bash(uuidgen)",
-      "Read(//Users/user/Projects/Unity/PlasticBag_Game_0705/**)"
+      "Read(//Users/user/Projects/Unity/PlasticBag_Game_0705/**)",
+      "Bash(/opt/homebrew/opt/openjdk/bin/javap -version)",
+      "Read(//Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/build-tools/**)",
+      "Read(//Users/user/Desktop/**)"
     ]
   }
 }

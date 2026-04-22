@@ -5,7 +5,10 @@
       "Bash($ADB uninstall:*)",
       "Bash($ADB shell:*)",
       "Bash($ADB install:*)",
-      "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb -s R3KYB032YLY shell am start -n com.DXPLap.XRExergamePlasticBagGame/com.unity3d.player.UnityPlayerGameActivity)"
+      "Bash(/Applications/Unity/Hub/Editor/6000.1.17f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb -s R3KYB032YLY shell am start -n com.DXPLap.XRExergamePlasticBagGame/com.unity3d.player.UnityPlayerGameActivity)",
+      "Read(//tmp/**)",
+      "Bash(scrcpy --version)",
+      "Bash(ffmpeg -f avfoundation -list_devices true -i \"\")"
     ],
     "additionalDirectories": [
       "/Users/user/Projects/Unity/xr-unity-samples/AndroidXRUnitySamples/.claude",
