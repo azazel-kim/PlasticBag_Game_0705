@@ -150,7 +150,7 @@ MonoBehaviour:
   strongImpactSound: {fileID: 8300000, guid: 234a68e1968cf544898f716121c22e52, type: 3}
   mediumImpactThreshold: 0.4
   strongImpactThreshold: 1.5
-  lightVolume: 2
+  lightVolume: 3
   mediumVolume: 1
   strongVolume: 2.7
 --- !u!114 &-932437751212796987

@@ -433,6 +433,10 @@ MonoBehaviour:
   enablePhysicsColliders: 1
   physicsRadius: 0.009
   palmPhysicsRadius: 0.03
+  showDebugVisuals: 1
+  debugVisualScale: 1
+  debugJointColor: {r: 0, g: 1, b: 1, a: 0.6}
+  debugPalmColor: {r: 1, g: 0.8, b: 0, a: 0.6}
 --- !u!1 &233138924
 GameObject:
   m_ObjectHideFlags: 0
@@ -623,6 +627,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabToSpawn: {fileID: 5861375644312843771, guid: 3717a5efb79d3ca4fbe48836f84d48b5, type: 3}
+  spawnBagsEnabled: 1
+  spawnBallsEnabled: 1
   ballPrefab: {fileID: 0}
   ballSpawnRatio: 0.3
   spawnAreaCenter: {x: 0.1, y: 0, z: 0.3}
@@ -992,6 +998,19 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3509315297636259872, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
   m_PrefabInstance: {fileID: 1984253419}
   m_PrefabAsset: {fileID: 0}
+--- !u!134 &598459887
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  serializedVersion: 2
+  m_DynamicFriction: 0.6
+  m_StaticFriction: 0.6
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1001 &711696150
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1139,6 +1158,10 @@ MonoBehaviour:
   enablePhysicsColliders: 1
   physicsRadius: 0.009
   palmPhysicsRadius: 0.03
+  showDebugVisuals: 1
+  debugVisualScale: 1
+  debugJointColor: {r: 0, g: 1, b: 1, a: 0.6}
+  debugPalmColor: {r: 1, g: 0.8, b: 0, a: 0.6}
 --- !u!1 &847186682
 GameObject:
   m_ObjectHideFlags: 0
@@ -1829,6 +1852,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabToSpawn: {fileID: 5861375644312843771, guid: 3717a5efb79d3ca4fbe48836f84d48b5, type: 3}
+  spawnBagsEnabled: 1
+  spawnBallsEnabled: 1
   ballPrefab: {fileID: 3482934107522028115, guid: bd55077a305f044d4bfd1a190952f23c, type: 3}
   ballSpawnRatio: 0.3
   spawnAreaCenter: {x: 0.1, y: 0, z: 0.3}
@@ -1886,7 +1911,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 0
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.4
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
@@ -2106,6 +2131,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1521889899}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!134 &1593215740
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  serializedVersion: 2
+  m_DynamicFriction: 0.6
+  m_StaticFriction: 0.6
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!21 &1598362108
 Material:
   serializedVersion: 8
@@ -2920,6 +2958,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: XR Origin (XR Rig)
       objectReference: {fileID: 0}
+    - target: {fileID: 6988609979081025388, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      propertyPath: m_Material
+      value: 
+      objectReference: {fileID: 598459887}
+    - target: {fileID: 7770158497779936968, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
+      propertyPath: m_Material
+      value: 
+      objectReference: {fileID: 1593215740}
     - target: {fileID: 8090123925518967685, guid: d19fda57342bb4f1b8f467c48bd7df27, type: 3}
       propertyPath: m_TagString
       value: PlayerHand

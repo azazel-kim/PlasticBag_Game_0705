@@ -25,7 +25,7 @@ TagManager:
   - Overlay UI
   - GazeTargetLayer
   - HPTK
-  - 
+  - BallOnly
   - Character
   - MirroredCharacter
   - 

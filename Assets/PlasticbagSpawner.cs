@@ -5,6 +5,13 @@ public class PlasticbagSpawner : MonoBehaviour
 {
     public GameObject prefabToSpawn;
 
+    [Header("오브젝트 On/Off (가장 쉬운 관리)")]
+    [Tooltip("봉지 스폰 허용")]
+    public bool spawnBagsEnabled = true;
+
+    [Tooltip("공 스폰 허용")]
+    public bool spawnBallsEnabled = true;
+
     [Header("Ball 혼합 스폰")]
     [Tooltip("공 프리팹(선택). null이면 플라스틱백만 스폰.")]
     public GameObject ballPrefab;
@@ -96,17 +103,49 @@ public class PlasticbagSpawner : MonoBehaviour
         _activeBalls.Remove(obj);
     }
 
+    // ── On/Off 쉬운 관리용 런타임 메서드 (UI 버튼/디버그 패널 연결용) ──
+    public void SetBagsEnabled(bool enabled) { spawnBagsEnabled = enabled; }
+    public void SetBallsEnabled(bool enabled) { spawnBallsEnabled = enabled; }
+    public void ToggleBags() { spawnBagsEnabled = !spawnBagsEnabled; }
+    public void ToggleBalls() { spawnBallsEnabled = !spawnBallsEnabled; }
+
+    public void ClearAllBags()
+    {
+        for (int i = _activeBags.Count - 1; i >= 0; i--)
+        {
+            if (_activeBags[i] != null) Destroy(_activeBags[i]);
+        }
+        _activeBags.Clear();
+    }
+
+    public void ClearAllBalls()
+    {
+        for (int i = _activeBalls.Count - 1; i >= 0; i--)
+        {
+            if (_activeBalls[i] != null) Destroy(_activeBalls[i]);
+        }
+        _activeBalls.Clear();
+    }
+
+    public void ClearAll()
+    {
+        ClearAllBags();
+        ClearAllBalls();
+    }
+
     public void SpawnPlasticbag()
     {
-        if (prefabToSpawn == null) return;
+        // 봉지/공 어느 쪽도 허용되지 않으면 즉시 반환
+        if (!spawnBagsEnabled && !spawnBallsEnabled) return;
+        if (prefabToSpawn == null && ballPrefab == null) return;
 
         // 총합 제한 먼저 확인
         int totalActive = _activeBags.Count + _activeBalls.Count;
         if (totalActive >= totalMax) return;
 
-        // 타입별 빈자리 계산
-        bool canSpawnBag = _activeBags.Count < maxBags;
-        bool canSpawnBall = (ballPrefab != null) && (_activeBalls.Count < maxBalls);
+        // 타입별 빈자리 계산 (On/Off 토글 포함)
+        bool canSpawnBag = spawnBagsEnabled && (prefabToSpawn != null) && (_activeBags.Count < maxBags);
+        bool canSpawnBall = spawnBallsEnabled && (ballPrefab != null) && (_activeBalls.Count < maxBalls);
         if (!canSpawnBag && !canSpawnBall) return;
 
         // 스폰 타입 결정: 한쪽만 가능하면 그쪽, 둘 다 가능하면 확률로

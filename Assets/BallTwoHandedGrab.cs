@@ -1,111 +1,183 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR.Hands;
 
 /// <summary>
-/// 공 양손 grab — **거리 기반 감지**로 Unity 물리 트리거 이벤트와 무관하게 동작합니다.
+/// 공 잡기 — **공 트리거 콜라이더 진입 기반** 양손 감싸기.
 ///
-/// 핵심 설계:
-///  - 손 루트(Left Hand/Right Hand Transform) ↔ 공 중심 거리를 매 FixedUpdate에서 측정
-///  - `pinchGuardDistance` 이내: 공 즉시 isKinematic=true (물리 핀치 원천 차단)
-///  - `grabDistance` 이내 & 양손: 공을 양손 중점으로 MovePosition
-///  - 양손 모두 벗어나면 isKinematic=false → 중력 낙하 재개
+/// 동작:
+///  - 공에는 2개의 SphereCollider: 물리(non-trigger, 10cm) + 트리거(isTrigger, 12.5cm = 비주얼 표면)
+///  - 손 조인트 콜라이더가 공 트리거 영역(=비주얼 안쪽)에 들어오면 "공 안에 있음"
+///  - 양손 중 적어도 하나씩의 조인트가 **동시에** 공 트리거 내부면 grab 시작
+///  - 공은 grab 중 dynamic 유지 + 스프링 힘으로 양손 최근접 점 중점으로 끌어당김
+///  - 한 손이라도 나가면 release + 손 속도 이어받아 throw
 ///
-/// 트리거 콜라이더 이벤트에 의존하지 않으므로 ball non-trigger 물리 collider가
-/// grab trigger보다 크더라도 문제 없음.
+/// 거리 기반보다 트래킹 편차에 강건: "실제로 안에 있느냐"로 판정하므로 왼/오른쪽 대칭성 확보.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class BallTwoHandedGrab : MonoBehaviour
 {
-    [Header("거리 기반 감지 (손 루트 ↔ 공 중심)")]
-    [Tooltip("이 거리 이내에 손이 들어오면 공 kinematic 전환 (물리 pinch 차단용)")]
-    public float pinchGuardDistance = 0.23f;
+    [Header("스프링 잡기 (dynamic 유지)")]
+    [Tooltip("양손 중점으로 끌어당기는 강성")]
+    public float grabStiffness = 600f;
 
-    [Tooltip("이 거리 이내에 양손 모두 있으면 grab 시작")]
-    public float grabDistance = 0.235f;
+    [Tooltip("스프링 감쇠")]
+    public float grabDamping = 40f;
 
-    [Header("잡힘 동작")]
-    [Tooltip("양손 중점 이동 스무딩 (0=즉시, 높을수록 지연)")]
-    [Range(0f, 0.9f)]
-    public float grabSmoothing = 0.15f;
+    [Tooltip("release 시 공에 이어받을 손 속도 비율")]
+    public float releaseVelocityScale = 1.0f;
 
     [Header("디버그")]
     public bool verboseLog = false;
 
+    // ─── 외부 ───
+    public bool IsGrabbed => _isGrabbed;
+
+    // ─── 내부 ───
     private Rigidbody _rb;
-    private Transform _leftHandRoot;
-    private Transform _rightHandRoot;
     private bool _isGrabbed = false;
+    private bool _savedUseGravity = true;
+    private Vector3 _lastGrabPoint;
+    private Vector3 _handVelocity;
+    private float _diagLogTimer = 0f;
+
+    // 트리거에 진입한 손 콜라이더 집합 (손 별로 구분)
+    private readonly HashSet<Collider> _leftInside = new HashSet<Collider>();
+    private readonly HashSet<Collider> _rightInside = new HashSet<Collider>();
 
     void Awake()
     {
         _rb = GetComponent<Rigidbody>();
     }
 
-    void EnsureHandRefs()
+    // 콜라이더가 왼손 / 오른손 / 해당 없음 판정
+    private static int ClassifyHand(Collider other)
     {
-        if (_leftHandRoot == null)
+        // 1) 이름 prefix로 판정 (가장 빠름)
+        string n = other.gameObject.name;
+        if (n.StartsWith("HandCol_Left_")) return 1;
+        if (n.StartsWith("HandCol_Right_")) return 2;
+
+        // 2) 부모 계층의 HandColliderSetup handedness로 판정
+        var setup = other.GetComponentInParent<HandColliderSetup>();
+        if (setup != null)
         {
-            var go = GameObject.Find("Left Hand");
-            if (go != null) _leftHandRoot = go.transform;
+            if (setup.handedness == Handedness.Left) return 1;
+            if (setup.handedness == Handedness.Right) return 2;
         }
-        if (_rightHandRoot == null)
+
+        // 3) Left Hand / Right Hand GameObject 하위 판정
+        Transform t = other.transform;
+        while (t != null)
         {
-            var go = GameObject.Find("Right Hand");
-            if (go != null) _rightHandRoot = go.transform;
+            if (t.name == "Left Hand") return 1;
+            if (t.name == "Right Hand") return 2;
+            t = t.parent;
         }
+        return 0;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        int side = ClassifyHand(other);
+        if (side == 1) _leftInside.Add(other);
+        else if (side == 2) _rightInside.Add(other);
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        int side = ClassifyHand(other);
+        if (side == 1) _leftInside.Remove(other);
+        else if (side == 2) _rightInside.Remove(other);
+    }
+
+    // 손 측 콜라이더 중 공에서 가장 가까운 점의 월드 좌표 반환
+    private Vector3 GetNearestPoint(HashSet<Collider> set, Vector3 ballPos, out bool any)
+    {
+        any = false;
+        float minDist = float.MaxValue;
+        Vector3 best = ballPos;
+        foreach (var c in set)
+        {
+            if (c == null || !c.enabled || !c.gameObject.activeInHierarchy) continue;
+
+            // [중요] c.bounds.center(손 콜라이더 내부 중심)가 아니라
+            // c.ClosestPoint(공 쪽으로 가장 가까운 손 콜라이더 표면점)를 사용
+            //  → 공이 손 내부로 파고들지 않고 손 표면과 맞물리는 지점에 안착
+            //  → 스프링 힘 vs 물리 충돌 간 싸움 해소
+            Vector3 p = c.ClosestPoint(ballPos);
+            float d = Vector3.Distance(ballPos, p);
+            if (d < minDist) { minDist = d; best = p; any = true; }
+        }
+        return best;
     }
 
     void FixedUpdate()
     {
-        EnsureHandRefs();
-        if (_leftHandRoot == null || _rightHandRoot == null) return;
+        // null 제거 (콜라이더 파괴 등)
+        _leftInside.RemoveWhere(c => c == null || !c.gameObject.activeInHierarchy);
+        _rightInside.RemoveWhere(c => c == null || !c.gameObject.activeInHierarchy);
 
-        Vector3 ballPos = transform.position;
-        float leftDist = Vector3.Distance(ballPos, _leftHandRoot.position);
-        float rightDist = Vector3.Distance(ballPos, _rightHandRoot.position);
+        bool bothHands = _leftInside.Count > 0 && _rightInside.Count > 0;
 
-        // 두 조건은 독립적으로 판정 (pinch < grab 또는 pinch > grab 어느 순서든 안전)
-        bool anyInPinch = (leftDist < pinchGuardDistance) || (rightDist < pinchGuardDistance);
-        bool bothInGrab = (leftDist < grabDistance) && (rightDist < grabDistance);
-        bool needKinematic = anyInPinch || bothInGrab;
-
-        // Kinematic 상태 관리
-        if (needKinematic)
+        if (verboseLog)
         {
-            if (_rb != null && !_rb.isKinematic)
+            _diagLogTimer += Time.fixedDeltaTime;
+            if (_diagLogTimer >= 1.0f)
             {
-                _rb.isKinematic = true;
-                if (verboseLog) Debug.Log($"[BallGrab] kinematic ON (left={leftDist:F2}, right={rightDist:F2}, pinch={anyInPinch}, grab={bothInGrab})");
+                _diagLogTimer = 0f;
+                Debug.Log($"[BallGrab-DIAG] L_inside={_leftInside.Count} R_inside={_rightInside.Count} grabbed={_isGrabbed} vel={_rb.linearVelocity.magnitude:F2}");
             }
+        }
+
+        if (bothHands)
+        {
+            Vector3 ballPos = transform.position;
+            Vector3 lp = GetNearestPoint(_leftInside, ballPos, out _);
+            Vector3 rp = GetNearestPoint(_rightInside, ballPos, out _);
+            Vector3 mid = (lp + rp) * 0.5f;
+            if (!_isGrabbed) StartGrab(mid);
+            else UpdateGrab(mid);
         }
         else
         {
-            if (_rb != null && _rb.isKinematic)
-            {
-                _rb.isKinematic = false;
-                if (verboseLog) Debug.Log("[BallGrab] release → dynamic");
-            }
-            _isGrabbed = false;
+            if (_isGrabbed) ReleaseGrab();
         }
+    }
 
-        // Grab 이동: 양손 모두 grab 거리 안이면 중점으로 이동
-        if (bothInGrab)
+    private void StartGrab(Vector3 target)
+    {
+        _isGrabbed = true;
+        _savedUseGravity = _rb.useGravity;
+        _rb.useGravity = false;
+        _lastGrabPoint = target;
+        _handVelocity = Vector3.zero;
+        if (verboseLog) Debug.Log($"[BallGrab] START at {target.ToString("F3")}");
+    }
+
+    private void UpdateGrab(Vector3 target)
+    {
+        float dt = Time.fixedDeltaTime;
+        Vector3 ballPos = transform.position;
+
+        if (dt > 0.0001f)
+            _handVelocity = (target - _lastGrabPoint) / dt;
+        _lastGrabPoint = target;
+
+        Vector3 posError = target - ballPos;
+        Vector3 force = posError * grabStiffness - _rb.linearVelocity * grabDamping;
+        _rb.AddForce(force, ForceMode.Acceleration);
+    }
+
+    private void ReleaseGrab()
+    {
+        if (verboseLog) Debug.Log($"[BallGrab] RELEASE (handVel={_handVelocity.magnitude:F2} m/s)");
+        _isGrabbed = false;
+        if (_rb != null)
         {
-            if (!_isGrabbed)
-            {
-                _isGrabbed = true;
-                if (verboseLog) Debug.Log("[BallGrab] 양손 grab 시작");
-            }
-            Vector3 mid = (_leftHandRoot.position + _rightHandRoot.position) * 0.5f;
-            Vector3 target = Vector3.Lerp(ballPos, mid, 1f - grabSmoothing);
-            if (_rb != null && _rb.isKinematic)
-                _rb.MovePosition(target);
-            else
-                transform.position = target;
+            _rb.useGravity = _savedUseGravity;
+            _rb.linearVelocity = _rb.linearVelocity + _handVelocity * (releaseVelocityScale - 1f);
         }
-        else if (_isGrabbed)
-        {
-            _isGrabbed = false;
-        }
-        // else: anyInPinch만 있는 경우 → kinematic이므로 제자리 고정
+        _handVelocity = Vector3.zero;
     }
 }
